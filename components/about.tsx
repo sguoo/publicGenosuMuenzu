@@ -5,11 +5,11 @@ export default function About() {
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              환상몽원도란?
+              幻想夢園圖란?
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            그림을 전시하고, 굿즈들 즉매회를 합니다.
+            동방프로젝트의 무한한 창작성을 기념하는 연례 온리전입니다
           </p>
         </div>
 
