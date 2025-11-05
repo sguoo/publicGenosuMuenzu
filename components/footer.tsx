@@ -84,7 +84,9 @@ export default function Footer() {
             <h4 className="font-bold mb-4 text-primary">문의</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <p className="text-muted-foreground">📧 info@gensou.kr</p>
+                <p className="text-muted-foreground">
+                  📧 muenzu@gensoumuenzu.com
+                </p>
               </li>
               <li>
                 <p className="text-muted-foreground">☎️ 02-XXXX-XXXX</p>
