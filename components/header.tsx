@@ -6,14 +6,14 @@ import { useTheme } from "next-themes";
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const { theme, setTheme, systemTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [isSystemMode, setIsSystemMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setIsSystemMode(theme === "system" || theme === systemTheme);
-  }, [theme, systemTheme]);
+  }, []);
+
+  const isDark = resolvedTheme === "dark";
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border theme-transition">
@@ -58,13 +58,13 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {mounted && !isSystemMode && (
+            {mounted && (
               <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                onClick={() => setTheme(isDark ? "light" : "dark")}
                 className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition theme-transition"
                 aria-label="Toggle dark mode"
               >
-                {theme === "dark" ? (
+                {isDark ? (
                   <Sun
                     size={20}
                     className="text-accent transition-transform duration-300 rotate-0 hover:rotate-12"
