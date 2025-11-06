@@ -38,13 +38,7 @@ export default function Schedule() {
         <div className="mt-8 bg-card border border-border rounded-xl p-8">
           <h3 className="text-xl font-bold mb-6 text-primary">타임테이블</h3>
           <div className="space-y-4">
-            {[
-              { time: "10:30", event: "입장 시작" },
-              { time: "11:00", event: "공식 개회식" },
-              { time: "11:30", event: "전시 및 판매 개시" },
-              { time: "15:00", event: "토크 콘서트" },
-              { time: "17:00", event: "폐회식" },
-            ].map((item, idx) => (
+            {[{ time: "10:30", event: "입장 시작" }].map((item, idx) => (
               <div key={idx} className="flex items-center gap-4">
                 <div className="min-w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
                   <Clock className="w-5 h-5 text-accent" />

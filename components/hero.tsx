@@ -45,12 +45,14 @@ export default function Hero() {
         <div className="flex gap-8 justify-center text-sm">
           <div className="flex flex-col items-center">
             <span className="text-2xl font-bold text-primary">0</span>
-            <span className="text-muted-foreground">참가 작가</span>
+            <span className="text-muted-foreground">참가 부스</span>
           </div>
+          /*
           <div className="flex flex-col items-center">
             <span className="text-2xl font-bold text-accent">0</span>
             <span className="text-muted-foreground">창작물</span>
           </div>
+          */
           <div className="flex flex-col items-center">
             <span className="text-2xl font-bold text-primary">0</span>
             <span className="text-muted-foreground">개최까지</span>
