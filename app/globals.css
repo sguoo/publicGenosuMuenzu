@@ -143,14 +143,13 @@ html:not(.dark) {
   }
 }
 
-* {
+body {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
-body,
 html {
-  margin: 0 !important;
-  padding: 0 !important;
+  margin: 0;
+  padding: 0;
 }
