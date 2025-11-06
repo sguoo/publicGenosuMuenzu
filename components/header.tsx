@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useState(() => setMounted(true));
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -48,9 +53,25 @@ export default function Header() {
             </a>
           </nav>
 
-          <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center gap-4">
+            {mounted && (
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition"
+                aria-label="Toggle dark mode"
+              >
+                {theme === "dark" ? (
+                  <Sun size={20} className="text-accent" />
+                ) : (
+                  <Moon size={20} className="text-primary" />
+                )}
+              </button>
+            )}
+
+            <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
         {isOpen && (
