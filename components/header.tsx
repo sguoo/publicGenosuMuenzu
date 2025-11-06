@@ -29,7 +29,7 @@ export default function Header() {
             </h1>
           </div>
 
-          <nav className="hidden md:flex gap-8">
+          <nav className="hidden md:flex gap-8 absolute left-1/2 -translate-x-1/2">
             <a
               href="#about"
               className="text-foreground hover:text-primary transition theme-transition"
