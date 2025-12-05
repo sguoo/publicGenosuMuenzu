@@ -63,8 +63,6 @@ export async function PUT(request: NextRequest) {
           data: { publicUrl },
         } = supabase.storage.from("booth-images").getPublicUrl(fileName);
         updateData.image = publicUrl;
-      } else {
-        console.error("이미지 업로드 실패:", uploadError);
       }
     }
 
@@ -86,8 +84,6 @@ export async function PUT(request: NextRequest) {
           data: { publicUrl },
         } = supabase.storage.from("booth-images").getPublicUrl(fileName);
         updateData.cover_image = publicUrl;
-      } else {
-        console.error("배경 이미지 업로드 실패:", uploadError);
       }
     }
 
@@ -101,7 +97,7 @@ export async function PUT(request: NextRequest) {
     if (error) {
       console.error("부스 수정 실패:", error);
       return NextResponse.json(
-        { error: "부스 수정에 실패했습니다", details: error.message },
+        { error: "부스 수정에 실패했습니다" },
         { status: 500 }
       );
     }
