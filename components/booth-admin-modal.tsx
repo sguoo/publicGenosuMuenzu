@@ -2,13 +2,19 @@
 
 import type React from "react";
 
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Upload } from "lucide-react";
 
 interface BoothAdminModalProps {
   isOpen: boolean;
   onClose: () => void;
   email: string;
+}
+
+interface Booth {
+  id: string;
+  name: string;
+  character: string;
 }
 
 export default function BoothAdminModal({
@@ -20,14 +26,15 @@ export default function BoothAdminModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [booths, setBooths] = useState<Booth[]>([]);
 
   // 부스 정보 폼
   const [boothForm, setBoothForm] = useState({
     name: "",
     character: "",
     products: "",
-    image: "",
-    cover_image: "",
+    image: null as File | null,
+    cover_image: null as File | null,
   });
 
   // 상품 정보 폼
@@ -36,8 +43,70 @@ export default function BoothAdminModal({
     name: "",
     category: "",
     price: "",
-    image: "",
+    image: null as File | null,
   });
+
+  // 이미지 미리보기 URL
+  const [boothImagePreview, setBoothImagePreview] = useState("");
+  const [boothCoverPreview, setBoothCoverPreview] = useState("");
+  const [productImagePreview, setProductImagePreview] = useState("");
+
+  // 부스 목록 불러오기
+  const fetchBooths = async () => {
+    try {
+      const response = await fetch("/api/booths");
+      const data = await response.json();
+      setBooths(data);
+    } catch (err) {
+      console.error("부스 목록 로딩 실패:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchBooths();
+    }
+  }, [isOpen]);
+
+  // 이미지 파일 처리
+  const handleImageChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "booth_image" | "booth_cover" | "product_image"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 파일 타입 검증
+    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
+      setError("JPG 또는 PNG 파일만 업로드 가능합니다");
+      return;
+    }
+
+    // 파일 크기 검증 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("파일 크기는 5MB 이하여야 합니다");
+      return;
+    }
+
+    setError("");
+
+    // 미리보기 생성
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const preview = reader.result as string;
+      if (type === "booth_image") {
+        setBoothImagePreview(preview);
+        setBoothForm({ ...boothForm, image: file });
+      } else if (type === "booth_cover") {
+        setBoothCoverPreview(preview);
+        setBoothForm({ ...boothForm, cover_image: file });
+      } else {
+        setProductImagePreview(preview);
+        setProductForm({ ...productForm, image: file });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleBoothSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,10 +115,17 @@ export default function BoothAdminModal({
     setLoading(true);
 
     try {
+      const formData = new FormData();
+      formData.append("name", boothForm.name);
+      formData.append("character", boothForm.character);
+      formData.append("products", boothForm.products);
+      if (boothForm.image) formData.append("image", boothForm.image);
+      if (boothForm.cover_image)
+        formData.append("cover_image", boothForm.cover_image);
+
       const response = await fetch("/api/add-booth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(boothForm),
+        body: formData,
       });
 
       const data = await response.json();
@@ -63,9 +139,12 @@ export default function BoothAdminModal({
         name: "",
         character: "",
         products: "",
-        image: "",
-        cover_image: "",
+        image: null,
+        cover_image: null,
       });
+      setBoothImagePreview("");
+      setBoothCoverPreview("");
+      fetchBooths();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
@@ -81,10 +160,16 @@ export default function BoothAdminModal({
     setLoading(true);
 
     try {
+      const formData = new FormData();
+      formData.append("booth_id", productForm.booth_id);
+      formData.append("name", productForm.name);
+      formData.append("category", productForm.category);
+      formData.append("price", productForm.price);
+      if (productForm.image) formData.append("image", productForm.image);
+
       const response = await fetch("/api/add-product", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productForm),
+        body: formData,
       });
 
       const data = await response.json();
@@ -99,8 +184,9 @@ export default function BoothAdminModal({
         name: "",
         category: "",
         price: "",
-        image: "",
+        image: null,
       });
+      setProductImagePreview("");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다");
@@ -204,32 +290,52 @@ export default function BoothAdminModal({
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  부스 이미지 URL (선택사항)
+                  부스 이미지 (선택사항)
                 </label>
-                <input
-                  type="url"
-                  value={boothForm.image}
-                  onChange={(e) =>
-                    setBoothForm({ ...boothForm, image: e.target.value })
-                  }
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                />
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
+                    <Upload size={18} />
+                    <span>이미지 선택</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      onChange={(e) => handleImageChange(e, "booth_image")}
+                      className="hidden"
+                    />
+                  </label>
+                  {boothImagePreview && (
+                    <img
+                      src={boothImagePreview}
+                      alt="미리보기"
+                      className="h-16 w-16 object-cover rounded"
+                    />
+                  )}
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  배경 이미지 URL (선택사항)
+                  배경 이미지 (선택사항)
                 </label>
-                <input
-                  type="url"
-                  value={boothForm.cover_image}
-                  onChange={(e) =>
-                    setBoothForm({ ...boothForm, cover_image: e.target.value })
-                  }
-                  placeholder="https://example.com/cover.jpg"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                />
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
+                    <Upload size={18} />
+                    <span>이미지 선택</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      onChange={(e) => handleImageChange(e, "booth_cover")}
+                      className="hidden"
+                    />
+                  </label>
+                  {boothCoverPreview && (
+                    <img
+                      src={boothCoverPreview}
+                      alt="미리보기"
+                      className="h-16 w-24 object-cover rounded"
+                    />
+                  )}
+                </div>
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -250,18 +356,28 @@ export default function BoothAdminModal({
             <form onSubmit={handleProductSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  부스 ID
+                  부스 선택
                 </label>
-                <input
-                  type="text"
+                <select
                   value={productForm.booth_id}
                   onChange={(e) =>
                     setProductForm({ ...productForm, booth_id: e.target.value })
                   }
-                  placeholder="부스 UUID를 입력하세요"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
                   required
-                />
+                >
+                  <option value="">부스를 선택하세요</option>
+                  {booths.map((booth) => (
+                    <option key={booth.id} value={booth.id}>
+                      {booth.name} ({booth.character})
+                    </option>
+                  ))}
+                </select>
+                {productForm.booth_id && (
+                  <p className="mt-2 text-xs text-muted-foreground font-mono bg-muted p-2 rounded break-all">
+                    UUID: {productForm.booth_id}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -310,17 +426,27 @@ export default function BoothAdminModal({
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  상품 이미지 URL (선택사항)
+                  상품 이미지 (선택사항)
                 </label>
-                <input
-                  type="url"
-                  value={productForm.image}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, image: e.target.value })
-                  }
-                  placeholder="https://example.com/product.jpg"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                />
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
+                    <Upload size={18} />
+                    <span>이미지 선택</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      onChange={(e) => handleImageChange(e, "product_image")}
+                      className="hidden"
+                    />
+                  </label>
+                  {productImagePreview && (
+                    <img
+                      src={productImagePreview}
+                      alt="미리보기"
+                      className="h-16 w-16 object-cover rounded"
+                    />
+                  )}
+                </div>
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
