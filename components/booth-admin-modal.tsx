@@ -517,23 +517,6 @@ export default function BoothAdminModal({
                       required
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      상품 목록 (쉼표로 구분)
-                    </label>
-                    <textarea
-                      value={boothForm.products}
-                      onChange={(e) =>
-                        setBoothForm({ ...boothForm, products: e.target.value })
-                      }
-                      placeholder="상품1,상품2,상품3"
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                      rows={3}
-                      required
-                    />
-                  </div>
-
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       부스 이미지 (선택사항)

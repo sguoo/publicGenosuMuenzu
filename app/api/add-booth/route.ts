@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const character = formData.get("character") as string;
-    const products = formData.get("products") as string;
+    const products = null;
     const imageFile = formData.get("image") as File | null;
     const coverImageFile = formData.get("cover_image") as File | null;
 
