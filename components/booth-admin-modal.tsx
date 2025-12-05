@@ -1,21 +1,25 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { X } from "lucide-react"
+import { useState } from "react";
+import { X } from "lucide-react";
 
 interface BoothAdminModalProps {
-  isOpen: boolean
-  onClose: () => void
-  email: string
+  isOpen: boolean;
+  onClose: () => void;
+  email: string;
 }
 
-export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminModalProps) {
-  const [activeTab, setActiveTab] = useState<"booth" | "product">("booth")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
+export default function BoothAdminModal({
+  isOpen,
+  onClose,
+  email,
+}: BoothAdminModalProps) {
+  const [activeTab, setActiveTab] = useState<"booth" | "product">("booth");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   // 부스 정보 폼
   const [boothForm, setBoothForm] = useState({
@@ -24,7 +28,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     products: "",
     image: "",
     cover_image: "",
-  })
+  });
 
   // 상품 정보 폼
   const [productForm, setProductForm] = useState({
@@ -33,67 +37,79 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     category: "",
     price: "",
     image: "",
-  })
+  });
 
   const handleBoothSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setSuccess("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
 
     try {
       const response = await fetch("/api/add-booth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(boothForm),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "부스 추가 실패")
+        throw new Error(data.error || "부스 추가 실패");
       }
 
-      setSuccess("부스가 성공적으로 추가되었습니다!")
-      setBoothForm({ name: "", character: "", products: "", image: "", cover_image: "" })
-      setTimeout(() => setSuccess(""), 3000)
+      setSuccess("부스가 성공적으로 추가되었습니다!");
+      setBoothForm({
+        name: "",
+        character: "",
+        products: "",
+        image: "",
+        cover_image: "",
+      });
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류가 발생했습니다")
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleProductSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setSuccess("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
 
     try {
       const response = await fetch("/api/add-product", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(productForm),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "상품 추가 실패")
+        throw new Error(data.error || "상품 추가 실패");
       }
 
-      setSuccess("상품이 성공적으로 추가되었습니다!")
-      setProductForm({ booth_id: "", name: "", category: "", price: "", image: "" })
-      setTimeout(() => setSuccess(""), 3000)
+      setSuccess("상품이 성공적으로 추가되었습니다!");
+      setProductForm({
+        booth_id: "",
+        name: "",
+        category: "",
+        price: "",
+        image: "",
+      });
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류가 발생했습니다")
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -101,7 +117,10 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
         {/* 헤더 */}
         <div className="flex justify-between items-center p-6 border-b border-border sticky top-0 bg-background">
           <h2 className="text-xl font-bold">부스 관리</h2>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded transition">
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-muted rounded transition"
+          >
             <X size={20} />
           </button>
         </div>
@@ -136,11 +155,15 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
           {activeTab === "booth" && (
             <form onSubmit={handleBoothSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">부스 이름</label>
+                <label className="block text-sm font-medium mb-2">
+                  부스 이름
+                </label>
                 <input
                   type="text"
                   value={boothForm.name}
-                  onChange={(e) => setBoothForm({ ...boothForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setBoothForm({ ...boothForm, name: e.target.value })
+                  }
                   placeholder="부스 이름을 입력하세요"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
                   required
@@ -148,11 +171,15 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">캐릭터명</label>
+                <label className="block text-sm font-medium mb-2">
+                  캐릭터명
+                </label>
                 <input
                   type="text"
                   value={boothForm.character}
-                  onChange={(e) => setBoothForm({ ...boothForm, character: e.target.value })}
+                  onChange={(e) =>
+                    setBoothForm({ ...boothForm, character: e.target.value })
+                  }
                   placeholder="캐릭터명을 입력하세요"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
                   required
@@ -160,10 +187,14 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">상품 목록 (쉼표로 구분)</label>
+                <label className="block text-sm font-medium mb-2">
+                  상품 목록 (쉼표로 구분)
+                </label>
                 <textarea
                   value={boothForm.products}
-                  onChange={(e) => setBoothForm({ ...boothForm, products: e.target.value })}
+                  onChange={(e) =>
+                    setBoothForm({ ...boothForm, products: e.target.value })
+                  }
                   placeholder="상품1,상품2,상품3"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
                   rows={3}
@@ -172,26 +203,32 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">부스 이미지 URL</label>
+                <label className="block text-sm font-medium mb-2">
+                  부스 이미지 URL (선택사항)
+                </label>
                 <input
                   type="url"
                   value={boothForm.image}
-                  onChange={(e) => setBoothForm({ ...boothForm, image: e.target.value })}
+                  onChange={(e) =>
+                    setBoothForm({ ...boothForm, image: e.target.value })
+                  }
                   placeholder="https://example.com/image.jpg"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">배경 이미지 URL</label>
+                <label className="block text-sm font-medium mb-2">
+                  배경 이미지 URL (선택사항)
+                </label>
                 <input
                   type="url"
                   value={boothForm.cover_image}
-                  onChange={(e) => setBoothForm({ ...boothForm, cover_image: e.target.value })}
+                  onChange={(e) =>
+                    setBoothForm({ ...boothForm, cover_image: e.target.value })
+                  }
                   placeholder="https://example.com/cover.jpg"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  required
                 />
               </div>
 
@@ -212,11 +249,15 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
           {activeTab === "product" && (
             <form onSubmit={handleProductSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">부스 ID</label>
+                <label className="block text-sm font-medium mb-2">
+                  부스 ID
+                </label>
                 <input
                   type="text"
                   value={productForm.booth_id}
-                  onChange={(e) => setProductForm({ ...productForm, booth_id: e.target.value })}
+                  onChange={(e) =>
+                    setProductForm({ ...productForm, booth_id: e.target.value })
+                  }
                   placeholder="부스 UUID를 입력하세요"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
                   required
@@ -228,7 +269,9 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                 <input
                   type="text"
                   value={productForm.name}
-                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setProductForm({ ...productForm, name: e.target.value })
+                  }
                   placeholder="상품명을 입력하세요"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
                   required
@@ -236,11 +279,15 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">카테고리</label>
+                <label className="block text-sm font-medium mb-2">
+                  카테고리
+                </label>
                 <input
                   type="text"
                   value={productForm.category}
-                  onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                  onChange={(e) =>
+                    setProductForm({ ...productForm, category: e.target.value })
+                  }
                   placeholder="예: 굿즈, 의류, 책"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
                   required
@@ -252,7 +299,9 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                 <input
                   type="text"
                   value={productForm.price}
-                  onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                  onChange={(e) =>
+                    setProductForm({ ...productForm, price: e.target.value })
+                  }
                   placeholder="예: 5,000원"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
                   required
@@ -260,14 +309,17 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">상품 이미지 URL</label>
+                <label className="block text-sm font-medium mb-2">
+                  상품 이미지 URL (선택사항)
+                </label>
                 <input
                   type="url"
                   value={productForm.image}
-                  onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                  onChange={(e) =>
+                    setProductForm({ ...productForm, image: e.target.value })
+                  }
                   placeholder="https://example.com/product.jpg"
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  required
                 />
               </div>
 
@@ -286,5 +338,5 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
         </div>
       </div>
     </div>
-  )
+  );
 }

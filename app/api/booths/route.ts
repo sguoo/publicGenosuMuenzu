@@ -44,6 +44,8 @@ export async function GET() {
     const formattedData =
       data?.map((booth: any) => ({
         ...booth,
+        image: booth.image || null,
+        cover_image: booth.cover_image || null,
         boothProducts: booth.products || [],
       })) || [];
 
