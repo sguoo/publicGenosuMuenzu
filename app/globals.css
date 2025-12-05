@@ -11,9 +11,7 @@
 }
 
 html {
-  transition:
-    color 300ms ease-in-out,
-    background-color 300ms ease-in-out;
+  transition: color 300ms ease-in-out, background-color 300ms ease-in-out;
 }
 
 html.dark,
@@ -141,15 +139,4 @@ html:not(.dark) {
   body {
     @apply bg-background;
   }
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
-html {
-  margin: 0;
-  padding: 0;
 }

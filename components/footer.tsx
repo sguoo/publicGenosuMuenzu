@@ -55,7 +55,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="https://x.com/gensoumuenzu"
+                  href="#"
                   className="text-muted-foreground hover:text-primary transition"
                 >
                   트위터
