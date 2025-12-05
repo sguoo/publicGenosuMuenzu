@@ -15,6 +15,9 @@ interface Booth {
   id: string;
   name: string;
   character: string;
+  products: string;
+  image: string | null;
+  cover_image: string | null;
 }
 
 export default function BoothAdminModal({
@@ -27,6 +30,8 @@ export default function BoothAdminModal({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [booths, setBooths] = useState<Booth[]>([]);
+  const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
+  const [hasExistingBooth, setHasExistingBooth] = useState(false);
 
   // 부스 정보 폼
   const [boothForm, setBoothForm] = useState({
@@ -57,6 +62,16 @@ export default function BoothAdminModal({
       const response = await fetch("/api/booths");
       const data = await response.json();
       setBooths(data);
+
+      // 부스가 있는지 확인
+      if (data && data.length > 0) {
+        setHasExistingBooth(true);
+        // 첫 번째 부스를 자동으로 선택
+        setSelectedBooth(data[0]);
+      } else {
+        setHasExistingBooth(false);
+        setSelectedBooth(null);
+      }
     } catch (err) {
       console.error("부스 목록 로딩 실패:", err);
     }
@@ -67,6 +82,31 @@ export default function BoothAdminModal({
       fetchBooths();
     }
   }, [isOpen]);
+
+  // 부스 선택 시 폼에 데이터 채우기
+  useEffect(() => {
+    if (selectedBooth) {
+      setBoothForm({
+        name: selectedBooth.name,
+        character: selectedBooth.character,
+        products: selectedBooth.products,
+        image: null,
+        cover_image: null,
+      });
+      setBoothImagePreview(selectedBooth.image || "");
+      setBoothCoverPreview(selectedBooth.cover_image || "");
+    } else {
+      setBoothForm({
+        name: "",
+        character: "",
+        products: "",
+        image: null,
+        cover_image: null,
+      });
+      setBoothImagePreview("");
+      setBoothCoverPreview("");
+    }
+  }, [selectedBooth]);
 
   // 이미지 파일 처리
   const handleImageChange = (
@@ -108,7 +148,8 @@ export default function BoothAdminModal({
     reader.readAsDataURL(file);
   };
 
-  const handleBoothSubmit = async (e: React.FormEvent) => {
+  // 부스 추가 (새로 생성)
+  const handleBoothCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -144,6 +185,50 @@ export default function BoothAdminModal({
       });
       setBoothImagePreview("");
       setBoothCoverPreview("");
+      fetchBooths();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "오류가 발생했습니다");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 부스 수정
+  const handleBoothUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedBooth) {
+      setError("수정할 부스를 선택해주세요");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("booth_id", selectedBooth.id);
+      formData.append("name", boothForm.name);
+      formData.append("character", boothForm.character);
+      formData.append("products", boothForm.products);
+      if (boothForm.image) formData.append("image", boothForm.image);
+      if (boothForm.cover_image)
+        formData.append("cover_image", boothForm.cover_image);
+
+      const response = await fetch("/api/update-booth", {
+        method: "PUT",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "부스 수정 실패");
+      }
+
+      setSuccess("부스가 성공적으로 수정되었습니다!");
       fetchBooths();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -221,7 +306,7 @@ export default function BoothAdminModal({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            부스 정보
+            {hasExistingBooth ? "부스 정보 수정" : "부스 추가"}
           </button>
           <button
             onClick={() => setActiveTab("product")}
@@ -239,116 +324,281 @@ export default function BoothAdminModal({
         <div className="p-6">
           {/* 부스 정보 */}
           {activeTab === "booth" && (
-            <form onSubmit={handleBoothSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  부스 이름
-                </label>
-                <input
-                  type="text"
-                  value={boothForm.name}
-                  onChange={(e) =>
-                    setBoothForm({ ...boothForm, name: e.target.value })
-                  }
-                  placeholder="부스 이름을 입력하세요"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  required
-                />
-              </div>
+            <div className="space-y-4">
+              {/* 부스가 이미 있는 경우 - 수정 모드 */}
+              {hasExistingBooth && booths.length > 0 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      수정할 부스 선택
+                    </label>
+                    <select
+                      value={selectedBooth?.id || ""}
+                      onChange={(e) => {
+                        const booth = booths.find(
+                          (b) => b.id === e.target.value
+                        );
+                        setSelectedBooth(booth || null);
+                      }}
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
+                    >
+                      {booths.map((booth) => (
+                        <option key={booth.id} value={booth.id}>
+                          {booth.name} ({booth.character})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  캐릭터명
-                </label>
-                <input
-                  type="text"
-                  value={boothForm.character}
-                  onChange={(e) =>
-                    setBoothForm({ ...boothForm, character: e.target.value })
-                  }
-                  placeholder="캐릭터명을 입력하세요"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  required
-                />
-              </div>
+                  {selectedBooth && (
+                    <form
+                      onSubmit={handleBoothUpdate}
+                      className="space-y-4 pt-4 border-t border-border"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          부스 이름
+                        </label>
+                        <input
+                          type="text"
+                          value={boothForm.name}
+                          onChange={(e) =>
+                            setBoothForm({ ...boothForm, name: e.target.value })
+                          }
+                          placeholder="부스 이름을 입력하세요"
+                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                          required
+                        />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  상품 목록 (쉼표로 구분)
-                </label>
-                <textarea
-                  value={boothForm.products}
-                  onChange={(e) =>
-                    setBoothForm({ ...boothForm, products: e.target.value })
-                  }
-                  placeholder="상품1,상품2,상품3"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  rows={3}
-                  required
-                />
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          캐릭터명
+                        </label>
+                        <input
+                          type="text"
+                          value={boothForm.character}
+                          onChange={(e) =>
+                            setBoothForm({
+                              ...boothForm,
+                              character: e.target.value,
+                            })
+                          }
+                          placeholder="캐릭터명을 입력하세요"
+                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                          required
+                        />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  부스 이미지 (선택사항)
-                </label>
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
-                    <Upload size={18} />
-                    <span>이미지 선택</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      onChange={(e) => handleImageChange(e, "booth_image")}
-                      className="hidden"
-                    />
-                  </label>
-                  {boothImagePreview && (
-                    <img
-                      src={boothImagePreview}
-                      alt="미리보기"
-                      className="h-16 w-16 object-cover rounded"
-                    />
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          상품 목록 (쉼표로 구분)
+                        </label>
+                        <textarea
+                          value={boothForm.products}
+                          onChange={(e) =>
+                            setBoothForm({
+                              ...boothForm,
+                              products: e.target.value,
+                            })
+                          }
+                          placeholder="상품1,상품2,상품3"
+                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                          rows={3}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          부스 이미지
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
+                            <Upload size={18} />
+                            <span>이미지 변경</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/jpg,image/png"
+                              onChange={(e) =>
+                                handleImageChange(e, "booth_image")
+                              }
+                              className="hidden"
+                            />
+                          </label>
+                          {boothImagePreview && (
+                            <img
+                              src={boothImagePreview}
+                              alt="미리보기"
+                              className="h-16 w-16 object-cover rounded"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          배경 이미지
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
+                            <Upload size={18} />
+                            <span>이미지 변경</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/jpg,image/png"
+                              onChange={(e) =>
+                                handleImageChange(e, "booth_cover")
+                              }
+                              className="hidden"
+                            />
+                          </label>
+                          {boothCoverPreview && (
+                            <img
+                              src={boothCoverPreview}
+                              alt="미리보기"
+                              className="h-16 w-24 object-cover rounded"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {error && <p className="text-red-500 text-sm">{error}</p>}
+                      {success && (
+                        <p className="text-green-500 text-sm">{success}</p>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium"
+                      >
+                        {loading ? "수정 중..." : "부스 정보 수정"}
+                      </button>
+                    </form>
                   )}
-                </div>
-              </div>
+                </>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  배경 이미지 (선택사항)
-                </label>
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
-                    <Upload size={18} />
-                    <span>이미지 선택</span>
+              {/* 부스가 없는 경우 - 추가 모드 */}
+              {!hasExistingBooth && (
+                <form onSubmit={handleBoothCreate} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      부스 이름
+                    </label>
                     <input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      onChange={(e) => handleImageChange(e, "booth_cover")}
-                      className="hidden"
+                      type="text"
+                      value={boothForm.name}
+                      onChange={(e) =>
+                        setBoothForm({ ...boothForm, name: e.target.value })
+                      }
+                      placeholder="부스 이름을 입력하세요"
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                      required
                     />
-                  </label>
-                  {boothCoverPreview && (
-                    <img
-                      src={boothCoverPreview}
-                      alt="미리보기"
-                      className="h-16 w-24 object-cover rounded"
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      캐릭터명
+                    </label>
+                    <input
+                      type="text"
+                      value={boothForm.character}
+                      onChange={(e) =>
+                        setBoothForm({
+                          ...boothForm,
+                          character: e.target.value,
+                        })
+                      }
+                      placeholder="캐릭터명을 입력하세요"
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                      required
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      상품 목록 (쉼표로 구분)
+                    </label>
+                    <textarea
+                      value={boothForm.products}
+                      onChange={(e) =>
+                        setBoothForm({ ...boothForm, products: e.target.value })
+                      }
+                      placeholder="상품1,상품2,상품3"
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      부스 이미지 (선택사항)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
+                        <Upload size={18} />
+                        <span>이미지 선택</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png"
+                          onChange={(e) => handleImageChange(e, "booth_image")}
+                          className="hidden"
+                        />
+                      </label>
+                      {boothImagePreview && (
+                        <img
+                          src={boothImagePreview}
+                          alt="미리보기"
+                          className="h-16 w-16 object-cover rounded"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      배경 이미지 (선택사항)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition">
+                        <Upload size={18} />
+                        <span>이미지 선택</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png"
+                          onChange={(e) => handleImageChange(e, "booth_cover")}
+                          className="hidden"
+                        />
+                      </label>
+                      {boothCoverPreview && (
+                        <img
+                          src={boothCoverPreview}
+                          alt="미리보기"
+                          className="h-16 w-24 object-cover rounded"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {error && <p className="text-red-500 text-sm">{error}</p>}
+                  {success && (
+                    <p className="text-green-500 text-sm">{success}</p>
                   )}
-                </div>
-              </div>
 
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              {success && <p className="text-green-500 text-sm">{success}</p>}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium"
-              >
-                {loading ? "추가 중..." : "부스 추가"}
-              </button>
-            </form>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium"
+                  >
+                    {loading ? "추가 중..." : "부스 추가"}
+                  </button>
+                </form>
+              )}
+            </div>
           )}
 
           {/* 상품 추가 */}
