@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         .upload(fileName, imageFile, {
           contentType: imageFile.type,
           cacheControl: "3600",
-          upsert: false,
+          upsert: false,  
         });
 
       if (uploadError) {

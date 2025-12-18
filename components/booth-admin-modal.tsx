@@ -606,11 +606,6 @@ export default function BoothAdminModal({
                     </option>
                   ))}
                 </select>
-                {productForm.booth_id && (
-                  <p className="mt-2 text-xs text-muted-foreground font-mono bg-muted p-2 rounded break-all">
-                    UUID: {productForm.booth_id}
-                  </p>
-                )}
               </div>
 
               <div>
