@@ -1,119 +1,104 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-
-export const runtime = "edge";
+import fs from "fs";
+import path from "path";
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    
-    // 1. Supabase 클라이언트 초기화
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
-
-    // 2. 데이터 가져오기
     const formData = await request.formData();
+    
+    // 폼 데이터 추출
     const name = formData.get("name") as string;
     const character = formData.get("character") as string;
-    
-    // ★ 추가됨: 이메일과 상품 정보 받기
     const email = formData.get("email") as string;
-    const products = formData.get("products") as string | null;
+    const products = formData.get("products") as string; // 상품 텍스트
+    
+    // id가 있으면 수정 모드라고 판단
+    const id = formData.get("id") as string | null;
 
     const imageFile = formData.get("image") as File | null;
     const coverImageFile = formData.get("cover_image") as File | null;
 
-    // ★ 수정됨: 타입 명시 (Implicit any 에러 해결)
-    let imageUrl: string | null = null;
-    let coverImageUrl: string | null = null;
-
-    // 3. 부스 이미지 업로드
-    if (imageFile) {
-      const fileName = `${Date.now()}-${imageFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("booth-images")
-        .upload(fileName, imageFile, {
-          contentType: imageFile.type,
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error("이미지 업로드 실패:", uploadError);
-      } else {
-        const { data: { publicUrl } } = supabase.storage
-          .from("booth-images")
-          .getPublicUrl(fileName);
-        imageUrl = publicUrl;
+    // 이미지 저장 헬퍼 함수
+    const saveFile = async (file: File) => {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      // 파일명 충돌 방지를 위해 시간값 추가
+      const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`;
+      const uploadDir = path.join(process.cwd(), "public/uploads");
+      
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
+
+      fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+      return `/uploads/${fileName}`; // 프론트에서 접근 가능한 경로 반환
+    };
+
+    let imageUrl = null;
+    let coverImageUrl = null;
+
+    if (imageFile) imageUrl = await saveFile(imageFile);
+    if (coverImageFile) coverImageUrl = await saveFile(coverImageFile);
+
+    // DB 파일 읽기
+    const dbPath = path.join(process.cwd(), "data", "booths.json");
+    if (!fs.existsSync(dbPath)) {
+        const dir = path.dirname(dbPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(dbPath, "[]", "utf-8");
+    }
+    
+    const fileData = fs.readFileSync(dbPath, "utf-8");
+    let booths = fileData ? JSON.parse(fileData) : [];
+
+    let resultBooth;
+
+    // ID가 있고 기존 부스가 있다면 수정(Update)
+    if (id) {
+        const index = booths.findIndex((b: any) => b.id === id);
+        if (index !== -1) {
+            booths[index] = {
+                ...booths[index],
+                name,
+                character,
+                products,
+                // 새 이미지가 없으면 기존 이미지 유지
+                image: imageUrl || booths[index].image,
+                cover_image: coverImageUrl || booths[index].cover_image,
+                updatedAt: new Date().toISOString()
+            };
+            resultBooth = booths[index];
+        }
+    } 
+    
+    // 부스가 없거나 ID가 없으면 신규 생성(Create)
+    if (!resultBooth) {
+        // 이미 해당 이메일로 등록된 부스가 있는지 확인 (중복 방지)
+        const existing = booths.find((b: any) => b.email === email);
+        if (existing) {
+             return NextResponse.json({ error: "이미 등록된 부스가 있습니다." }, { status: 400 });
+        }
+
+        const newBooth = {
+            id: Date.now().toString(),
+            email,
+            name,
+            character,
+            products,
+            image: imageUrl,
+            cover_image: coverImageUrl,
+            createdAt: new Date().toISOString()
+        };
+        booths.push(newBooth);
+        resultBooth = newBooth;
     }
 
-    // 4. 배경 이미지 업로드
-    if (coverImageFile) {
-      const fileName = `${Date.now()}-${coverImageFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("booth-images")
-        .upload(fileName, coverImageFile, {
-          contentType: coverImageFile.type,
-          cacheControl: "3600",
-          upsert: false,
-        });
+    // 저장
+    fs.writeFileSync(dbPath, JSON.stringify(booths, null, 2), "utf-8");
 
-      if (uploadError) {
-        console.error("배경 이미지 업로드 실패:", uploadError);
-      } else {
-        const { data: { publicUrl } } = supabase.storage
-          .from("booth-images")
-          .getPublicUrl(fileName);
-        coverImageUrl = publicUrl;
-      }
-    }
-
-    // 5. DB에 데이터 저장
-    const { data, error } = await supabase
-      .from("booths")
-      .insert([
-        {
-          name,
-          character,
-          email,        // ★ 이메일 저장
-          products,     // ★ 상품 텍스트 저장
-          image: imageUrl,
-          cover_image: coverImageUrl,
-        },
-      ])
-      .select();
-
-    if (error) {
-      console.error("부스 추가 실패:", error);
-      return NextResponse.json(
-        { error: "부스 추가에 실패했습니다: " + error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: resultBooth });
 
   } catch (error) {
-    console.error("부스 추가 중 오류:", error);
-    return NextResponse.json(
-      { error: "부스 추가 중 오류가 발생했습니다" },
-      { status: 500 }
-    );
+    console.error("부스 저장 오류:", error);
+    return NextResponse.json({ error: "저장 중 오류가 발생했습니다." }, { status: 500 });
   }
 }

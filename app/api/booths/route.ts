@@ -1,50 +1,34 @@
-export const runtime = 'edge';
-import { NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
+import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      },
-    )
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get("email");
 
-    const { data, error } = await supabase.from("booths").select(`
-        id,
-        name,
-        character,
-        products,
-        image,
-        cover_image,
-        products(id, name, category, price, image)
-      `)
+    const dbPath = path.join(process.cwd(), "data", "booths.json");
 
-    if (error) {
-      console.error("[v0] Error fetching booths:", error)
-      return NextResponse.json({ error: "부스 데이터를 가져올 수 없습니다", booths: [] }, { status: 500 })
+    // 파일이 없으면 빈 배열 반환
+    if (!fs.existsSync(dbPath)) {
+        if (email) return NextResponse.json({ booth: null });
+        return NextResponse.json([]);
     }
 
-    const formattedData =
-      data?.map((booth: any) => ({
-        ...booth,
-        boothProducts: booth.products || [],
-      })) || []
+    const fileData = fs.readFileSync(dbPath, "utf-8");
+    const allBooths = fileData ? JSON.parse(fileData) : [];
 
-    return NextResponse.json(formattedData)
+    // 이메일 파라미터가 있으면 해당 유저의 부스만 찾아서 반환 (수정 모드용)
+    if (email) {
+      const myBooth = allBooths.find((b: any) => b.email === email);
+      return NextResponse.json({ booth: myBooth || null });
+    }
+
+    // 파라미터가 없으면 전체 목록 반환 (메인 페이지용)
+    return NextResponse.json(allBooths);
+
   } catch (error) {
-    console.error("[v0] Error fetching booths:", error)
-    return NextResponse.json({ error: "부스 데이터를 가져올 수 없습니다", booths: [] }, { status: 500 })
+    console.error("[API] 부스 목록 로딩 실패:", error);
+    return NextResponse.json({ error: "데이터 로딩 실패" }, { status: 500 });
   }
 }

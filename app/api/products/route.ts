@@ -1,154 +1,87 @@
-export const runtime = 'edge';
-import { type NextRequest, NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
+import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const boothId = searchParams.get("booth_id")
+const DB_PATH = path.join(process.cwd(), "data", "products.json");
 
-    if (!boothId) {
-      return NextResponse.json({ message: "부스 ID가 필요합니다" }, { status: 400 })
+// DB 읽기 헬퍼
+const getProducts = () => {
+    if (!fs.existsSync(DB_PATH)) return [];
+    const data = fs.readFileSync(DB_PATH, "utf-8");
+    return data ? JSON.parse(data) : [];
+};
+
+// DB 쓰기 헬퍼
+const saveProducts = (products: any[]) => {
+    const dir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(DB_PATH, JSON.stringify(products, null, 2), "utf-8");
+};
+
+// 이미지 저장 헬퍼
+const saveImage = async (file: File) => {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const fileName = `prod-${Date.now()}-${file.name.replace(/\s/g, '-')}`;
+    const uploadDir = path.join(process.cwd(), "public/uploads");
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+    return `/uploads/${fileName}`;
+};
+
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const boothId = searchParams.get("booth_id");
+    
+    const products = getProducts();
+    
+    if (boothId) {
+        const filtered = products.filter((p: any) => p.booth_id === boothId);
+        return NextResponse.json({ products: filtered });
     }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      },
-    )
-
-    const { data, error } = await supabase.from("products").select("*").eq("booth_id", boothId)
-
-    if (error) {
-      console.error("[v0] Error fetching products:", error)
-      return NextResponse.json({ message: "상품 조회 실패", error: error.message }, { status: 400 })
-    }
-
-    return NextResponse.json({ products: data || [] })
-  } catch (error) {
-    console.error("[v0] Error:", error)
-    return NextResponse.json({ message: "서버 오류가 발생했습니다" }, { status: 500 })
-  }
+    
+    return NextResponse.json({ products });
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      },
-    )
+export async function POST(request: Request) {
+    try {
+        // FormData 처리 (이미지 업로드를 위해 JSON 대신 FormData 사용 권장)
+        // 하지만 기존 클라이언트 코드가 JSON을 보낸다면 request.json() 사용
+        // 여기서는 에러 방지를 위해 둘 다 처리하도록 작성
+        
+        let body;
+        const contentType = request.headers.get("content-type") || "";
+        
+        if (contentType.includes("application/json")) {
+            body = await request.json();
+        } else {
+             return NextResponse.json({ error: "현재 JSON 형식만 지원합니다." }, { status: 400 });
+        }
 
-    const productData = await request.json()
-
-    const { data, error } = await supabase.from("products").insert([productData]).select()
-
-    if (error) {
-      console.error("[v0] Error inserting product:", error)
-      return NextResponse.json({ message: "상품 추가 실패", error: error.message }, { status: 400 })
+        const products = getProducts();
+        const newProduct = {
+            id: Date.now().toString(),
+            ...body, // booth_id, name, price, category, image(url string)
+            createdAt: new Date().toISOString()
+        };
+        
+        products.push(newProduct);
+        saveProducts(products);
+        
+        return NextResponse.json({ success: true, product: newProduct });
+    } catch (e) {
+        return NextResponse.json({ error: "상품 추가 실패" }, { status: 500 });
     }
-
-    return NextResponse.json({ message: "상품 추가 성공", data })
-  } catch (error) {
-    console.error("[v0] Error:", error)
-    return NextResponse.json({ message: "서버 오류가 발생했습니다" }, { status: 500 })
-  }
 }
 
-export async function PUT(request: NextRequest) {
-  try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      },
-    )
+export async function DELETE(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    
+    if (!id) return NextResponse.json({ error: "ID 필요" }, { status: 400 });
 
-    const { id, ...productData } = await request.json()
-
-    if (!id) {
-      return NextResponse.json({ message: "상품 ID가 필요합니다" }, { status: 400 })
-    }
-
-    const { data, error } = await supabase.from("products").update(productData).eq("id", id).select()
-
-    if (error) {
-      console.error("[v0] Error updating product:", error)
-      return NextResponse.json({ message: "상품 수정 실패", error: error.message }, { status: 400 })
-    }
-
-    return NextResponse.json({ message: "상품 수정 성공", data })
-  } catch (error) {
-    console.error("[v0] Error:", error)
-    return NextResponse.json({ message: "서버 오류가 발생했습니다" }, { status: 500 })
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get("id")
-
-    if (!id) {
-      return NextResponse.json({ message: "상품 ID가 필요합니다" }, { status: 400 })
-    }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      },
-    )
-
-    const { error } = await supabase.from("products").delete().eq("id", id)
-
-    if (error) {
-      console.error("[v0] Error deleting product:", error)
-      return NextResponse.json({ message: "상품 삭제 실패", error: error.message }, { status: 400 })
-    }
-
-    return NextResponse.json({ message: "상품 삭제 성공" })
-  } catch (error) {
-    console.error("[v0] Error:", error)
-    return NextResponse.json({ message: "서버 오류가 발생했습니다" }, { status: 500 })
-  }
+    let products = getProducts();
+    products = products.filter((p: any) => p.id !== id);
+    saveProducts(products);
+    
+    return NextResponse.json({ success: true });
 }
