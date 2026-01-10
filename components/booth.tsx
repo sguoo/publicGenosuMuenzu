@@ -135,7 +135,7 @@ export default function Booth() {
                 <div className="px-6 py-4 bg-background border-t border-primary/20 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg mb-4 overflow-hidden flex items-center justify-center">
                     <img
-                      src={getImageUrl(booth.coverImage || booth.cover_image, "부스커버")}
+                      src={getImageUrl(booth.coverImage ?? booth.cover_image ?? null, "부스커버")}
                       alt={`${booth.name} cover`}
                       className="w-full h-full object-cover"
                     />
