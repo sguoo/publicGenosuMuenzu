@@ -111,3 +111,35 @@ export default function Header() {
               <div className="h-px bg-border my-2" />
               <div className="flex items-center justify-between px-4">
                 <span className="text-sm font-medium">테마 설정</span>
+                <ThemeToggle />
+              </div>
+              <Button 
+                className="w-full mt-2" 
+                onClick={() => {
+                  setIsOpen(false)
+                  setIsLoginModalOpen(true)
+                }}
+              >
+                부스 참가자 로그인
+              </Button>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* 부스 로그인 모달 */}
+      <BoothLoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={handleLoginSuccess}
+      />
+
+      {/* 부스 관리자 모달 (로그인 성공 후 열림) */}
+      <BoothAdminModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        email={adminEmail}
+      />
+    </>
+  )
+}
