@@ -20,25 +20,35 @@ interface Product {
   image: string
 }
 
+interface Booth {
+  id: string
+  email: string
+  name: string
+  character: string
+  products: string
+  image: string
+  cover_image: string
+}
+
 export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminModalProps) {
   const [activeTab, setActiveTab] = useState<"booth" | "product">("booth")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  const [existingBooth, setExistingBooth] = useState<Booth | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
-  // 부스 정보 폼
   const [boothForm, setBoothForm] = useState({
     name: "",
     character: "",
     products: "",
     image: "",
     cover_image: "",
+    email: email,
   })
 
-  // 상품 정보 폼
   const [productForm, setProductForm] = useState({
     booth_id: "",
     name: "",
@@ -46,6 +56,27 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     price: "",
     image: "",
   })
+
+  const loadBooth = async () => {
+    try {
+      const response = await fetch(`/api/booth?email=${encodeURIComponent(email)}`)
+      const data = await response.json()
+      if (response.ok && data.booth) {
+        setExistingBooth(data.booth)
+        setBoothForm({
+          name: data.booth.name,
+          character: data.booth.character,
+          products: data.booth.products,
+          image: data.booth.image,
+          cover_image: data.booth.cover_image,
+          email: email,
+        })
+        setProductForm({ ...productForm, booth_id: data.booth.id })
+      }
+    } catch (err) {
+      console.error("[v0] Error loading booth:", err)
+    }
+  }
 
   const loadProducts = async (boothId: string) => {
     try {
@@ -66,20 +97,25 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     setLoading(true)
 
     try {
-      const response = await fetch("/api/add-booth", {
-        method: "POST",
+      const isUpdate = !!existingBooth
+      const url = "/api/booth"
+      const method = isUpdate ? "PUT" : "POST"
+      const body = isUpdate ? JSON.stringify({ id: existingBooth.id, ...boothForm }) : JSON.stringify(boothForm)
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(boothForm),
+        body,
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "부스 추가 실패")
+        throw new Error(data.error || `부스 ${isUpdate ? "수정" : "추가"} 실패`)
       }
 
-      setSuccess("부스가 성공적으로 추가되었습니다!")
-      setBoothForm({ name: "", character: "", products: "", image: "", cover_image: "" })
+      setSuccess(`부스가 성공적으로 ${isUpdate ? "수정" : "추가"}되었습니다!`)
+      await loadBooth()
       setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다")
@@ -114,7 +150,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
       }
 
       setSuccess(`상품이 성공적으로 ${editingProduct ? "수정" : "추가"}되었습니다!`)
-      setProductForm({ booth_id: "", name: "", category: "", price: "", image: "" })
+      setProductForm({ ...productForm, name: "", category: "", price: "", image: "" })
       setEditingProduct(null)
 
       if (productForm.booth_id) {
@@ -171,8 +207,20 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
   const handleCancelEdit = () => {
     setEditingProduct(null)
-    setProductForm({ booth_id: "", name: "", category: "", price: "", image: "" })
+    setProductForm({
+      booth_id: existingBooth?.id || "",
+      name: "",
+      category: "",
+      price: "",
+      image: "",
+    })
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      loadBooth()
+    }
+  }, [isOpen, email])
 
   useEffect(() => {
     if (productForm.booth_id && activeTab === "product") {
@@ -185,7 +233,6 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* 헤더 */}
         <div className="flex justify-between items-center p-6 border-b border-border">
           <h2 className="text-xl font-bold">부스 관리</h2>
           <button onClick={onClose} className="p-1 hover:bg-muted rounded transition">
@@ -193,7 +240,6 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
           </button>
         </div>
 
-        {/* 탭 */}
         <div className="flex border-b border-border">
           <button
             onClick={() => setActiveTab("booth")}
@@ -203,7 +249,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            부스 정보
+            부스 관리
           </button>
           <button
             onClick={() => setActiveTab("product")}
@@ -217,9 +263,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
           </button>
         </div>
 
-        {/* 콘텐츠 */}
         <div className="p-6 overflow-y-auto flex-1">
-          {/* 부스 정보 */}
           {activeTab === "booth" && (
             <form onSubmit={handleBoothSubmit} className="space-y-4">
               <div>
@@ -268,6 +312,16 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
                   required
                 />
+                {boothForm.image && (
+                  <img
+                    src={boothForm.image || "/placeholder.svg"}
+                    alt="부스 이미지 미리보기"
+                    className="mt-2 w-32 h-32 object-cover rounded border border-border"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg"
+                    }}
+                  />
+                )}
               </div>
 
               <div>
@@ -280,6 +334,16 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
                   required
                 />
+                {boothForm.cover_image && (
+                  <img
+                    src={boothForm.cover_image || "/placeholder.svg"}
+                    alt="배경 이미지 미리보기"
+                    className="mt-2 w-full h-32 object-cover rounded border border-border"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.svg"
+                    }}
+                  />
+                )}
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -290,163 +354,160 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                 disabled={loading}
                 className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium"
               >
-                {loading ? "추가 중..." : "부스 추가"}
+                {loading ? `${existingBooth ? "수정" : "추가"} 중...` : existingBooth ? "부스 수정" : "부스 추가"}
               </button>
             </form>
           )}
 
           {activeTab === "product" && (
             <div className="space-y-6">
-              {/* 상품 폼 */}
-              <form
-                onSubmit={handleProductSubmit}
-                className="space-y-4 p-4 border border-border rounded-lg bg-muted/30"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-lg">{editingProduct ? "상품 수정" : "상품 추가"}</h3>
-                  {editingProduct && (
-                    <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      className="text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      취소
-                    </button>
-                  )}
-                </div>
+              {!existingBooth ? (
+                <p className="text-muted-foreground text-center py-8">먼저 부스를 등록해주세요</p>
+              ) : (
+                <>
+                  <form
+                    onSubmit={handleProductSubmit}
+                    className="space-y-4 p-4 border border-border rounded-lg bg-muted/30"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-lg">{editingProduct ? "상품 수정" : "상품 추가"}</h3>
+                      {editingProduct && (
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          취소
+                        </button>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">부스 ID</label>
-                  <input
-                    type="text"
-                    value={productForm.booth_id}
-                    onChange={(e) => setProductForm({ ...productForm, booth_id: e.target.value })}
-                    placeholder="부스 UUID를 입력하세요"
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                    required
-                    disabled={!!editingProduct}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">상품명</label>
-                    <input
-                      type="text"
-                      value={productForm.name}
-                      onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                      placeholder="상품명을 입력하세요"
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">카테고리</label>
-                    <input
-                      type="text"
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                      placeholder="예: 굿즈, 의류, 책"
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">가격</label>
-                  <input
-                    type="text"
-                    value={productForm.price}
-                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                    placeholder="예: 5,000원"
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">상품 이미지 URL</label>
-                  <input
-                    type="url"
-                    value={productForm.image}
-                    onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                    placeholder="https://example.com/product.jpg"
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                    required
-                  />
-                  {productForm.image && (
-                    <img
-                      src={productForm.image || "/placeholder.svg"}
-                      alt="미리보기"
-                      className="mt-2 w-32 h-32 object-cover rounded border border-border"
-                    />
-                  )}
-                </div>
-
-                {error && <p className="text-red-500 text-sm">{error}</p>}
-                {success && <p className="text-green-500 text-sm">{success}</p>}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    `${editingProduct ? "수정" : "추가"} 중...`
-                  ) : (
-                    <>
-                      <Plus size={16} />
-                      {editingProduct ? "상품 수정" : "상품 추가"}
-                    </>
-                  )}
-                </button>
-              </form>
-
-              {/* 상품 목록 */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3">등록된 상품</h3>
-                {products.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">등록된 상품이 없습니다</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {products.map((product) => (
-                      <div
-                        key={product.id}
-                        className="border border-border rounded-lg p-4 flex gap-3 hover:border-primary/50 transition"
-                      >
-                        <img
-                          src={product.image || "/placeholder.svg"}
-                          alt={product.name}
-                          className="w-20 h-20 object-cover rounded"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">상품명</label>
+                        <input
+                          type="text"
+                          value={productForm.name}
+                          onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                          placeholder="상품명을 입력하세요"
+                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
+                          required
                         />
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{product.name}</h4>
-                          <p className="text-sm text-muted-foreground">{product.category}</p>
-                          <p className="text-sm font-medium mt-1">{product.price}</p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <button
-                            onClick={() => handleEditProduct(product)}
-                            className="p-2 hover:bg-muted rounded transition"
-                            title="수정"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleProductDelete(product.id)}
-                            className="p-2 hover:bg-destructive/10 text-destructive rounded transition"
-                            title="삭제"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
                       </div>
-                    ))}
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">카테고리</label>
+                        <input
+                          type="text"
+                          value={productForm.category}
+                          onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                          placeholder="예: 굿즈, 의류, 책"
+                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">가격</label>
+                      <input
+                        type="text"
+                        value={productForm.price}
+                        onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                        placeholder="예: 5,000원"
+                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">상품 이미지 URL</label>
+                      <input
+                        type="url"
+                        value={productForm.image}
+                        onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                        placeholder="https://example.com/product.jpg"
+                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
+                        required
+                      />
+                      {productForm.image && (
+                        <img
+                          src={productForm.image || "/placeholder.svg"}
+                          alt="미리보기"
+                          className="mt-2 w-32 h-32 object-cover rounded border border-border"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg"
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                    {success && <p className="text-green-500 text-sm">{success}</p>}
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        `${editingProduct ? "수정" : "추가"} 중...`
+                      ) : (
+                        <>
+                          <Plus size={16} />
+                          {editingProduct ? "상품 수정" : "상품 추가"}
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">등록된 상품</h3>
+                    {products.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">등록된 상품이 없습니다</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {products.map((product) => (
+                          <div
+                            key={product.id}
+                            className="border border-border rounded-lg p-4 flex gap-3 hover:border-primary/50 transition"
+                          >
+                            <img
+                              src={product.image || "/placeholder.svg"}
+                              alt={product.name}
+                              className="w-20 h-20 object-cover rounded"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder.svg"
+                              }}
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-semibold">{product.name}</h4>
+                              <p className="text-sm text-muted-foreground">{product.category}</p>
+                              <p className="text-sm font-medium mt-1">{product.price}</p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={() => handleEditProduct(product)}
+                                className="p-2 hover:bg-muted rounded transition"
+                                title="수정"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleProductDelete(product.id)}
+                                className="p-2 hover:bg-destructive/10 text-destructive rounded transition"
+                                title="삭제"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           )}
         </div>
