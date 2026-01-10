@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import Header from "@/components/header"
 import Booth from "@/components/booth"
 import Footer from "@/components/footer"
