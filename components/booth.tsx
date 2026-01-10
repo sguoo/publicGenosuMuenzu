@@ -16,12 +16,11 @@ interface Booth {
   name: string
   image: string | null
   character: string
-  products: string
+  products: string | any[]  
   coverImage: string | null
   cover_image?: string | null
   boothProducts: BoothProduct[]
 }
-
 export default function Booth() {
   const [expandedBooth, setExpandedBooth] = useState<number | string | null>(null)
   const [booths, setBooths] = useState<Booth[]>([])
@@ -119,9 +118,16 @@ export default function Booth() {
                     />
                     <h3 className="text-lg font-bold text-primary">{booth.name}</h3>
                   </div>
-                  <div className="flex gap-4 text-sm text-muted-foreground">
+<div className="flex gap-4 text-sm text-muted-foreground">
                     <span>🎨 주 캐릭터: {booth.character}</span>
-                    <span>📦 다루는 상품: {booth.products}</span>
+                    <span>
+                      📦 다루는 상품:{" "}
+                      {typeof booth.products === "string"
+                        ? booth.products
+                        : Array.isArray(booth.products)
+                        ? booth.products.map((p: any) => p.name || JSON.stringify(p)).join(", ")
+                        : JSON.stringify(booth.products)}
+                    </span>
                   </div>
                 </div>
                 <ChevronDown
