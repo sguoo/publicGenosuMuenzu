@@ -1,97 +1,113 @@
 "use client"
+import { useState, useEffect } from "react"
+import { Menu, X, User } from "lucide-react"
+import Link from "next/link"
+import { ThemeToggle } from "@/components/theme-provider"
+import BoothLoginModal from "@/components/booth-login-modal"
+import BoothAdminModal from "@/components/booth-admin-modal"
+import { Button } from "@/components/ui/button"
 
-import { useState } from "react"
-import { X, Mail, ArrowRight } from "lucide-react"
+export default function Header() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+  
+  // 모달 상태 관리
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false)
+  const [adminEmail, setAdminEmail] = useState("") 
 
-interface BoothLoginModalProps {
-  isOpen: boolean
-  onClose: () => void
-  // ★ 수정됨: 성공 시 이메일(string)을 넘겨준다고 명시
-  onSuccess: (email: string) => void 
-}
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
-export default function BoothLoginModal({ isOpen, onClose, onSuccess }: BoothLoginModalProps) {
-  const [email, setEmail] = useState("")
-  const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim()) return
-
-    setLoading(true)
-
-    // 실제 서비스라면 여기서 인증 메일 발송 등의 로직이 들어갑니다.
-    // 데모/간편 로그인을 위해 딜레이 후 바로 성공 처리합니다.
-    setTimeout(() => {
-      setLoading(false)
-      // 부모 컴포넌트(Header)에게 입력한 이메일 전달
-      onSuccess(email)
-      setEmail("")
-    }, 500)
+  // 로그인 성공 시 실행할 함수
+  const handleLoginSuccess = (email: string) => {
+    setAdminEmail(email)          // 이메일 저장
+    setIsLoginModalOpen(false)    // 로그인 모달 닫기
+    setIsAdminModalOpen(true)     // 관리자 모달 열기
   }
 
-  if (!isOpen) return null
+  const navItems = [
+    { name: "홈", href: "#hero" },
+    { name: "행사 소개", href: "#about" },
+    { name: "참가 부스", href: "#booth" },
+    { name: "아티스트", href: "#artists" },
+    { name: "오시는 길", href: "#location" },
+  ]
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
-        <button 
-          onClick={onClose} 
-          className="absolute top-4 right-4 p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
-        >
-          <X size={20} />
-        </button>
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
+          isScrolled
+            ? "bg-background/80 backdrop-blur-md border-border shadow-sm py-3"
+            : "bg-transparent border-transparent py-5"
+        }`}
+      >
+        <div className="container mx-auto px-4 flex items-center justify-between">
+          {/* 로고 */}
+          <Link 
+            href="/" 
+            className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+          >
+            환상몽원도
+          </Link>
 
-        <div className="p-8">
-          <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Mail className="text-primary" size={24} />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">부스 참가자 로그인</h2>
-            <p className="text-muted-foreground text-sm">
-              등록한 이메일을 입력하여 부스를 관리하세요.<br/>
-              (처음이라면 입력한 이메일로 자동 가입됩니다)
-            </p>
+          {/* 데스크탑 메뉴 */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors hover:underline underline-offset-4"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+
+          {/* 우측 버튼 그룹 */}
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsLoginModalOpen(true)}
+              className="gap-2 rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary"
+            >
+              <User size={16} />
+              부스 참가자
+            </Button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium ml-1">이메일 주소</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-muted/30 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
+          {/* 모바일 메뉴 버튼 */}
+          <button
+            className="md:hidden p-2 text-foreground"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="메뉴 열기"
+          >
+            {isOpen ? <X /> : <Menu />}
+          </button>
+        </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
-            >
-              {loading ? (
-                "확인 중..."
-              ) : (
-                <>
-                  부스 관리 시작하기 <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-        
-        <div className="bg-muted/30 p-4 text-center text-xs text-muted-foreground border-t border-border">
-          비밀번호 없이 이메일로 간편하게 인증합니다.
-        </div>
-      </div>
-    </div>
-  )
-}
+        {/* 모바일 메뉴 드롭다운 */}
+        {isOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg animate-in slide-in-from-top-2">
+            <div className="flex flex-col p-4 gap-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="px-4 py-3 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              <div className="h-px bg-border my-2" />
+              <div className="flex items-center justify-between px-4">
+                <span className="text-sm font-medium">테마 설정</span>

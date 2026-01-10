@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner";
-// import { Analytics } from "@vercel/analytics/react"  <-- 이 줄 제거 또는 주석
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,7 +33,7 @@ export default function RootLayout({
           </main>
           <Footer />
           <Toaster />
-          {/* <Analytics />  <-- 이 줄 제거 또는 주석 */}
+          {/* 에러 원인이었던 <BoothLoginModal /> 태그를 삭제했습니다. */}
         </ThemeProvider>
       </body>
     </html>
