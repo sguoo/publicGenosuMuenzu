@@ -11,11 +11,12 @@ interface BoothAdminModalProps {
   onLogout?: () => void
 }
 
+// 데이터 타입 정의 (에러 해결용)
 interface Booth {
   id: string;
   name: string;
   character: string;
-  products: string; 
+  products: string; // 여기서는 부스 설명으로 사용
   image: string;
   cover_image: string;
 }
@@ -33,15 +34,14 @@ interface FetchResponse {
   error?: string;
 }
 
-interface SaveResponse {
-  success?: boolean;
-  data?: Booth;
+interface ProductListResponse {
+  products?: Product[];
   error?: string;
 }
 
-// ★ 추가됨: 상품 목록 응답 타입 정의
-interface ProductListResponse {
-  products?: Product[];
+interface SaveResponse {
+  success?: boolean;
+  data?: Booth;
   error?: string;
 }
 
@@ -85,6 +85,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
     setFetchLoading(true)
     try {
       const res = await fetch(`/api/booths?email=${email}`)
+      // ★ 수정: unknown 에러 해결을 위한 타입 단언
       const data = (await res.json()) as FetchResponse
       
       if (data.booth) {
@@ -111,7 +112,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
   const fetchProducts = async (boothId: string) => {
     try {
       const res = await fetch(`/api/products?booth_id=${boothId}`)
-      // ★ 수정됨: 타입 단언 추가 (unknown -> ProductListResponse)
+      // ★ 수정: unknown 에러 해결
       const data = (await res.json()) as ProductListResponse
       setProductList(data.products || [])
     } catch (error) {
@@ -135,7 +136,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
 
       const res = await fetch("/api/add-booth", { method: "POST", body: formData })
       
-      // ★ 수정됨: 타입 단언 추가 (unknown -> SaveResponse)
+      // ★ 수정: unknown 에러 해결
       const result = (await res.json()) as SaveResponse
       
       if (result.success) {
@@ -226,7 +227,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
           </div>
         </div>
 
-        {/* 탭 메뉴 */}
+        {/* 탭 메뉴 (아까와 동일한 UI) */}
         <div className="flex border-b shrink-0">
           <button 
             onClick={() => setActiveTab("info")}
