@@ -1,0 +1,11 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "gensou-muenzu"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+# D1 데이터베이스 연결 설정
+[[d1_databases]]
+binding = "DB"
+database_name = "gensou-db"
+database_id = "5a7503ac-e794-4560-9df8-3a1b5a81f298"

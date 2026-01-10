@@ -1,25 +1,32 @@
 import { NextResponse } from "next/server";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
-// ★ 배포 환경(Cloudflare)을 위한 설정
 export const runtime = "edge";
 
 export async function GET(request: Request) {
   try {
+    const { env } = getRequestContext();
     const { searchParams } = new URL(request.url);
     const email = searchParams.get("email");
 
-    // 메모리에 저장된 데이터 가져오기 (없으면 빈 배열)
-    // globalThis를 사용하여 서버가 켜져있는 동안은 데이터를 유지하려 시도합니다.
-    const allBooths = (globalThis as any)._booths || [];
-
+    let stmt;
     if (email) {
-      const myBooth = allBooths.find((b: any) => b.email === email);
-      return NextResponse.json({ booth: myBooth || null });
+      // 내 부스 찾기
+      stmt = env.DB.prepare("SELECT * FROM booths WHERE email = ?").bind(email);
+    } else {
+      // 전체 부스 조회
+      stmt = env.DB.prepare("SELECT * FROM booths ORDER BY created_at DESC");
     }
 
-    return NextResponse.json(allBooths);
+    const { results } = await stmt.all();
 
+    if (email) {
+      return NextResponse.json({ booth: results[0] || null });
+    }
+
+    return NextResponse.json(results);
   } catch (error) {
+    console.error("D1 Error:", error);
     return NextResponse.json({ error: "데이터 로딩 실패" }, { status: 500 });
   }
 }

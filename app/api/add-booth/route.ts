@@ -1,80 +1,85 @@
 import { NextResponse } from "next/server";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
-// ★ 배포 환경을 위한 설정
 export const runtime = "edge";
+
+// 이미지 -> Base64 변환 함수
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  // Edge 런타임에서는 Buffer 대신 Uint8Array 사용
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return `data:${file.type};base64,${btoa(binary)}`;
+}
 
 export async function POST(request: Request) {
   try {
+    const { env } = getRequestContext();
     const formData = await request.formData();
     
+    const id = formData.get("id") as string | null;
     const name = formData.get("name") as string;
     const character = formData.get("character") as string;
     const email = formData.get("email") as string;
     const products = formData.get("products") as string;
-    const id = formData.get("id") as string | null;
-
-    // ★ 주의: Cloudflare Edge에서는 파일을 디스크에 저장할 수 없습니다.
-    // 이미지는 실제 저장은 안 되고, 폼만 통과시킵니다.
-    // (필요하다면 나중에 Supabase Storage나 AWS S3 같은 별도 서비스를 써야 합니다)
+    
     const imageFile = formData.get("image") as File | null;
     const coverImageFile = formData.get("cover_image") as File | null;
 
-    // 임시 이미지 URL 생성 (실제 파일은 아님)
-    const imageUrl = imageFile ? "/placeholder.svg" : null;
-    const coverImageUrl = coverImageFile ? "/placeholder.svg" : null;
+    let imageUrl = null;
+    let coverImageUrl = null;
 
-    // 전역 변수에 데이터 저장소 초기화
-    if (!(globalThis as any)._booths) {
-        (globalThis as any)._booths = [];
-    }
-    const booths = (globalThis as any)._booths;
-
-    let resultBooth;
+    if (imageFile && imageFile.size > 0) imageUrl = await fileToBase64(imageFile);
+    if (coverImageFile && coverImageFile.size > 0) coverImageUrl = await fileToBase64(coverImageFile);
 
     if (id) {
-        // 수정
-        const index = booths.findIndex((b: any) => b.id === id);
-        if (index !== -1) {
-            booths[index] = {
-                ...booths[index],
-                name,
-                character,
-                products,
-                // 새 이미지가 들어오면 업데이트, 아니면 유지
-                image: imageUrl || booths[index].image,
-                cover_image: coverImageUrl || booths[index].cover_image,
-                updatedAt: new Date().toISOString()
-            };
-            resultBooth = booths[index];
-        }
-    }
-    
-    if (!resultBooth) {
-        // 신규 추가
-        // 중복 방지
-        const existing = booths.find((b: any) => b.email === email);
-        if (existing) {
-             return NextResponse.json({ error: "이미 등록된 부스가 있습니다." }, { status: 400 });
-        }
+      // 수정 (Update)
+      let query = `UPDATE booths SET name = ?, character = ?, products = ? WHERE id = ?`;
+      let params: any[] = [name, character, products, id];
 
-        const newBooth = {
-            id: Date.now().toString(),
-            email,
-            name,
-            character,
-            products,
-            image: imageUrl,
-            cover_image: coverImageUrl,
-            createdAt: new Date().toISOString()
-        };
-        booths.push(newBooth);
-        resultBooth = newBooth;
-    }
+      // 이미지가 있으면 쿼리 변경
+      if (imageUrl && coverImageUrl) {
+        query = `UPDATE booths SET name=?, character=?, products=?, image=?, cover_image=? WHERE id=?`;
+        params = [name, character, products, imageUrl, coverImageUrl, id];
+      } else if (imageUrl) {
+        query = `UPDATE booths SET name=?, character=?, products=?, image=? WHERE id=?`;
+        params = [name, character, products, imageUrl, id];
+      } else if (coverImageUrl) {
+        query = `UPDATE booths SET name=?, character=?, products=?, cover_image=? WHERE id=?`;
+        params = [name, character, products, coverImageUrl, id];
+      }
 
-    return NextResponse.json({ success: true, data: resultBooth });
+      await env.DB.prepare(query).bind(...params).run();
+      
+      // 업데이트된 데이터 조회해서 반환
+      const updated = await env.DB.prepare("SELECT * FROM booths WHERE id = ?").bind(id).first();
+      return NextResponse.json({ success: true, data: updated });
+
+    } else {
+      // 신규 추가 (Insert)
+      // 중복 체크
+      const existing = await env.DB.prepare("SELECT id FROM booths WHERE email = ?").bind(email).first();
+      if (existing) {
+        return NextResponse.json({ error: "이미 등록된 부스가 있습니다." }, { status: 400 });
+      }
+
+      const newId = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+
+      await env.DB.prepare(
+        "INSERT INTO booths (id, email, name, character, products, image, cover_image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      ).bind(newId, email, name, character, products, imageUrl, coverImageUrl, createdAt).run();
+
+      const newBooth = await env.DB.prepare("SELECT * FROM booths WHERE id = ?").bind(newId).first();
+      return NextResponse.json({ success: true, data: newBooth });
+    }
 
   } catch (error) {
-    console.error("저장 오류:", error);
+    console.error("Save Error:", error);
     return NextResponse.json({ error: "저장 실패" }, { status: 500 });
   }
 }
