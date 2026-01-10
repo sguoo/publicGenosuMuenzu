@@ -11,12 +11,12 @@ interface BoothAdminModalProps {
   onLogout?: () => void
 }
 
-// 데이터 타입 정의 (에러 해결용)
+// --- 타입 정의 (에러 해결용) ---
 interface Booth {
   id: string;
   name: string;
   character: string;
-  products: string; // 여기서는 부스 설명으로 사용
+  products: string; // 여기서는 '부스 소개'로 사용
   image: string;
   cover_image: string;
 }
@@ -46,6 +46,7 @@ interface SaveResponse {
 }
 
 export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: BoothAdminModalProps) {
+  // ★ 탭 상태 관리: 'info'(기본정보) 또는 'products'(상품관리)
   const [activeTab, setActiveTab] = useState<"info" | "products">("info")
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(false)
@@ -85,7 +86,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
     setFetchLoading(true)
     try {
       const res = await fetch(`/api/booths?email=${email}`)
-      // ★ 수정: unknown 에러 해결을 위한 타입 단언
+      // ★ 타입 단언으로 에러 해결
       const data = (await res.json()) as FetchResponse
       
       if (data.booth) {
@@ -97,6 +98,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
         if (data.booth.image) setImagePreview(data.booth.image)
         if (data.booth.cover_image) setCoverPreview(data.booth.cover_image)
 
+        // 부스 ID가 있으면 상품 목록도 가져오기
         if (data.booth.id) {
           fetchProducts(data.booth.id)
         }
@@ -112,7 +114,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
   const fetchProducts = async (boothId: string) => {
     try {
       const res = await fetch(`/api/products?booth_id=${boothId}`)
-      // ★ 수정: unknown 에러 해결
+      // ★ 타입 단언으로 에러 해결
       const data = (await res.json()) as ProductListResponse
       setProductList(data.products || [])
     } catch (error) {
@@ -135,8 +137,6 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
       if (coverFile) formData.append("cover_image", coverFile)
 
       const res = await fetch("/api/add-booth", { method: "POST", body: formData })
-      
-      // ★ 수정: unknown 에러 해결
       const result = (await res.json()) as SaveResponse
       
       if (result.success) {
@@ -153,7 +153,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
   // 4. 상품 추가
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!id) return alert("먼저 부스 정보를 저장해주세요.")
+    if (!id) return alert("먼저 '기본 정보' 탭에서 부스 정보를 저장해주세요.")
     
     setProdLoading(true)
     try {
@@ -227,7 +227,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
           </div>
         </div>
 
-        {/* 탭 메뉴 (아까와 동일한 UI) */}
+        {/* ★ 탭 메뉴 (누르면 전환됨) */}
         <div className="flex border-b shrink-0">
           <button 
             onClick={() => setActiveTab("info")}
@@ -248,7 +248,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
           {fetchLoading ? (
             <div className="py-20 text-center text-muted-foreground">로딩 중...</div>
           ) : activeTab === "info" ? (
-            // --- 탭 1: 부스 정보 ---
+            // --- 탭 1: 부스 정보 (기존 폼) ---
             <form onSubmit={handleSaveInfo} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -277,8 +277,8 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
                   <input type="text" value={character} onChange={e => setCharacter(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg bg-background" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">부스 소개 (한줄 평)</label>
-                  <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg bg-background resize-none h-24" />
+                  <label className="text-sm font-medium">부스 소개</label>
+                  <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full mt-1 px-4 py-2 border rounded-lg bg-background resize-none h-24" placeholder="부스에 대한 간단한 소개를 적어주세요." />
                 </div>
               </div>
               
@@ -287,14 +287,14 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
               </button>
             </form>
           ) : (
-            // --- 탭 2: 상품 관리 ---
-            <div className="space-y-8">
+            // --- 탭 2: 상품 관리 (누르면 나오는 부분) ---
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-2 duration-200">
                {/* 상품 추가 폼 */}
                <form onSubmit={handleAddProduct} className="p-4 border rounded-xl bg-muted/10 space-y-4">
                   <h3 className="font-bold flex items-center gap-2"><Plus size={18}/> 새 상품 추가</h3>
                   <div className="flex gap-4 items-start">
-                    <div onClick={() => prodImageInputRef.current?.click()} className="w-20 h-20 bg-muted border-dashed border-2 rounded-lg flex items-center justify-center cursor-pointer shrink-0 relative overflow-hidden">
-                       {newProdPreview ? <Image src={newProdPreview} alt="Prod" fill className="object-cover" /> : <Upload size={16} />}
+                    <div onClick={() => prodImageInputRef.current?.click()} className="w-20 h-20 bg-muted border-dashed border-2 rounded-lg flex items-center justify-center cursor-pointer shrink-0 relative overflow-hidden hover:bg-muted/50 transition-colors">
+                       {newProdPreview ? <Image src={newProdPreview} alt="Prod" fill className="object-cover" /> : <Upload size={16} className="text-muted-foreground"/>}
                        <input ref={prodImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange(e, 'product')} />
                     </div>
                     <div className="flex-1 space-y-2">
@@ -310,7 +310,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
                   </button>
                </form>
 
-               {/* 상품 목록 */}
+               {/* 상품 목록 리스트 */}
                <div className="space-y-2">
                  <h3 className="font-bold text-sm text-muted-foreground">등록된 상품 ({productList.length})</h3>
                  {productList.length === 0 ? (
@@ -318,7 +318,7 @@ export default function BoothAdminModal({ isOpen, onClose, email, onLogout }: Bo
                  ) : (
                    <div className="grid gap-3">
                      {productList.map((prod) => (
-                       <div key={prod.id} className="flex items-center gap-3 p-3 border rounded-lg bg-background group">
+                       <div key={prod.id} className="flex items-center gap-3 p-3 border rounded-lg bg-background group hover:border-primary/50 transition-colors">
                          <div className="w-12 h-12 bg-muted rounded-md relative overflow-hidden shrink-0">
                            {prod.image && <Image src={prod.image} alt={prod.name} fill className="object-cover" />}
                          </div>
