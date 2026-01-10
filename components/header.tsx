@@ -1,154 +1,126 @@
 "use client"
-
 import { useState, useEffect } from "react"
-import { Menu, X, Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes"
-import BoothLoginModal from "./booth-login-modal"
-import BoothAdminModal from "./booth-admin-modal"
+import { Menu, X, User } from "lucide-react"
+import Link from "next/link"
+import { ThemeToggle } from "@/components/theme-provider"
+import BoothLoginModal from "@/components/booth-login-modal"
+import { Button } from "@/components/ui/button"
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [boothEmail, setBoothEmail] = useState("")
-  const { theme, setTheme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
 
+  // 스크롤 감지 (스크롤 내리면 배경색 진하게 변경)
   useEffect(() => {
-    setMounted(true)
-    // 로그인 상태 확인
-    const token = localStorage.getItem("boothToken")
-    const email = localStorage.getItem("boothEmail")
-    setIsLoggedIn(!!token)
-    setBoothEmail(email || "")
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const isDark = resolvedTheme === "dark"
-
-  const handleLogout = () => {
-    localStorage.removeItem("boothToken")
-    localStorage.removeItem("boothEmail")
-    setIsLoggedIn(false)
-    setBoothEmail("")
-  }
-
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true)
-    const email = localStorage.getItem("boothEmail")
-    setBoothEmail(email || "")
-    setIsLoginModalOpen(false)
-  }
+  const navItems = [
+    { name: "홈", href: "#hero" },
+    { name: "행사 소개", href: "#about" },
+    { name: "참가 부스", href: "#booth" },
+    { name: "아티스트", href: "#artists" },
+    { name: "오시는 길", href: "#location" },
+  ]
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border theme-transition">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center theme-transition">
-                <span className="text-primary-foreground font-bold text-lg">幻</span>
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                幻想夢園圖
-              </h1>
-            </div>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
+          isScrolled
+            ? "bg-background/80 backdrop-blur-md border-border shadow-sm py-3"
+            : "bg-transparent border-transparent py-5"
+        }`}
+      >
+        <div className="container mx-auto px-4 flex items-center justify-between">
+          {/* 로고 */}
+          <Link 
+            href="/" 
+            className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+          >
+            환상몽원도
+          </Link>
 
-            <nav className="hidden md:flex gap-8">
-              <a href="#about" className="text-foreground hover:text-primary transition theme-transition">
-                소개
-              </a>
-              <a href="/booths" className="text-foreground hover:text-primary transition theme-transition">
-                부스
-              </a>
-              <a href="#artists" className="text-foreground hover:text-primary transition theme-transition">
-                작가
-              </a>
-              <a href="#schedule" className="text-foreground hover:text-primary transition theme-transition">
-                일정
-              </a>
-              <a href="#contact" className="text-foreground hover:text-primary transition theme-transition">
-                문의
-              </a>
-            </nav>
+          {/* 데스크탑 메뉴 */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors hover:underline underline-offset-4"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
 
-            <div className="flex items-center gap-4">
-              {isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => setIsAdminModalOpen(true)}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium"
-                  >
-                    부스 관리
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition text-sm font-medium"
-                  >
-                    로그아웃
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setIsLoginModalOpen(true)}
-                  className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition text-sm font-medium"
-                >
-                  부스로 로그인
-                </button>
-              )}
-
-              {mounted && (
-                <button
-                  onClick={() => setTheme(isDark ? "light" : "dark")}
-                  className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition theme-transition"
-                  aria-label="Toggle dark mode"
-                >
-                  {isDark ? (
-                    <Sun size={20} className="text-accent transition-transform duration-300 rotate-0 hover:rotate-12" />
-                  ) : (
-                    <Moon
-                      size={20}
-                      className="text-primary transition-transform duration-300 rotate-0 hover:-rotate-12"
-                    />
-                  )}
-                </button>
-              )}
-
-              <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
+          {/* 우측 버튼 그룹 */}
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsLoginModalOpen(true)}
+              className="gap-2 rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary"
+            >
+              <User size={16} />
+              부스 참가자
+            </Button>
           </div>
 
-          {isOpen && (
-            <nav className="md:hidden mt-4 flex flex-col gap-2 pb-4">
-              <a href="#about" className="text-foreground hover:text-primary transition py-2 theme-transition">
-                소개
-              </a>
-              <a href="/booths" className="text-foreground hover:text-primary transition py-2 theme-transition">
-                부스
-              </a>
-              <a href="#artists" className="text-foreground hover:text-primary transition py-2 theme-transition">
-                작가
-              </a>
-              <a href="#schedule" className="text-foreground hover:text-primary transition py-2 theme-transition">
-                일정
-              </a>
-              <a href="#contact" className="text-foreground hover:text-primary transition py-2 theme-transition">
-                문의
-              </a>
-            </nav>
-          )}
+          {/* 모바일 메뉴 버튼 */}
+          <button
+            className="md:hidden p-2 text-foreground"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="메뉴 열기"
+          >
+            {isOpen ? <X /> : <Menu />}
+          </button>
         </div>
+
+        {/* 모바일 메뉴 드롭다운 */}
+        {isOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg animate-in slide-in-from-top-2">
+            <div className="flex flex-col p-4 gap-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="px-4 py-3 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              <div className="h-px bg-border my-2" />
+              <div className="flex items-center justify-between px-4">
+                <span className="text-sm font-medium">테마 설정</span>
+                <ThemeToggle />
+              </div>
+              <Button 
+                className="w-full mt-2" 
+                onClick={() => {
+                  setIsOpen(false)
+                  setIsLoginModalOpen(true)
+                }}
+              >
+                부스 참가자 로그인
+              </Button>
+            </div>
+          </div>
+        )}
       </header>
 
+      {/* 부스 로그인 모달 */}
       <BoothLoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
-        onSuccess={handleLoginSuccess}
       />
-
-      <BoothAdminModal isOpen={isAdminModalOpen} onClose={() => setIsAdminModalOpen(false)} email={boothEmail} />
     </>
   )
 }
