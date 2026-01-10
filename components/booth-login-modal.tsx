@@ -1,33 +1,52 @@
 "use client"
 
 import { useState } from "react"
-import { X, Mail, ArrowRight } from "lucide-react"
+import { X, Mail, ArrowRight, AlertCircle } from "lucide-react"
 
 interface BoothLoginModalProps {
   isOpen: boolean
   onClose: () => void
-  // ★ 중요: 성공 시 이메일(string)을 전달하도록 타입 수정됨
   onSuccess: (email: string) => void 
 }
 
 export default function BoothLoginModal({ isOpen, onClose, onSuccess }: BoothLoginModalProps) {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("") // 에러 메시지 상태 추가
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
 
     setLoading(true)
+    setError("") // 기존 에러 초기화
 
-    // 실제 서비스라면 여기서 인증 메일 발송 등의 로직이 들어갑니다.
-    // 데모/간편 로그인을 위해 딜레이 후 바로 성공 처리합니다.
-    setTimeout(() => {
+    try {
+      // 1. 서버(DB)에 이메일이 있는지 확인 요청
+      const res = await fetch(`/api/booths?email=${encodeURIComponent(email)}`)
+      
+      if (!res.ok) {
+        throw new Error("서버 통신 오류")
+      }
+
+      const data = await res.json()
+
+      // 2. DB에 해당 이메일을 가진 부스가 있는지 체크
+      if (data.booth) {
+        // 성공: 부모 컴포넌트에게 알림
+        onSuccess(email)
+        setEmail("")
+        setError("")
+      } else {
+        // 실패: DB에 없음
+        setError("등록된 부스 정보가 없습니다. 이메일을 확인해주세요.")
+      }
+    } catch (err) {
+      console.error(err)
+      setError("로그인 중 오류가 발생했습니다.")
+    } finally {
       setLoading(false)
-      // ★ 성공 시 부모 컴포넌트(Header)에게 입력한 이메일 전달
-      onSuccess(email)
-      setEmail("")
-    }, 500)
+    }
   }
 
   if (!isOpen) return null
@@ -49,8 +68,8 @@ export default function BoothLoginModal({ isOpen, onClose, onSuccess }: BoothLog
             </div>
             <h2 className="text-2xl font-bold mb-2">부스 참가자 로그인</h2>
             <p className="text-muted-foreground text-sm">
-              등록한 이메일을 입력하여 부스를 관리하세요.<br/>
-              (처음이라면 입력한 이메일로 자동 가입됩니다)
+              사전에 등록된 이메일을 입력해주세요.<br/>
+              (등록되지 않은 이메일은 접속할 수 없습니다)
             </p>
           </div>
 
@@ -64,12 +83,26 @@ export default function BoothLoginModal({ isOpen, onClose, onSuccess }: BoothLog
                   type="email"
                   placeholder="name@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-muted/30 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setError("") // 타이핑하면 에러 메시지 지움
+                  }}
+                  className={`w-full pl-10 pr-4 py-3 bg-muted/30 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    error 
+                      ? "border-red-500 focus:ring-red-200" 
+                      : "border-input focus:ring-primary/20 focus:border-primary"
+                  }`}
                   required
                   autoFocus
                 />
               </div>
+              {/* 에러 메시지 표시 영역 */}
+              {error && (
+                <div className="flex items-center gap-2 text-red-500 text-xs mt-1 ml-1 animate-in slide-in-from-left-1">
+                  <AlertCircle size={14} />
+                  <span>{error}</span>
+                </div>
+              )}
             </div>
 
             <button
