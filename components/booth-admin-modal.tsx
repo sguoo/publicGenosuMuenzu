@@ -110,8 +110,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     }
   }
 
-  // ★ 수정됨: JSON 대신 FormData를 사용하여 전송
-  const handleBoothSubmit = async (e: React.FormEvent) => {
+const handleBoothSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
@@ -119,11 +118,14 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
     try {
       const isUpdate = !!existingBooth
-      // 주의: 백엔드 파일 위치가 app/api/booths/route.ts라면 여기도 /api/booths 여야 합니다.
-      const url = "/api/booths" 
-      const method = isUpdate ? "PUT" : "POST"
+      
+      // ▼▼▼ [수정 포인트] 파일 구조에 맞춰 URL을 분기 처리합니다 ▼▼▼
+      // 추가(POST)할 때는 /api/add-booth
+      // 수정(PUT)할 때는 /api/update-booth (파일 구조상 존재한다고 가정)
+      const url = isUpdate ? "/api/update-booth" : "/api/add-booth"
+      const method = isUpdate ? "PUT" : "POST" 
+      // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-      // FormData 생성
       const formData = new FormData()
       
       if (isUpdate && existingBooth) {
@@ -132,10 +134,9 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
       
       formData.append("name", boothForm.name)
       formData.append("character", boothForm.character)
-      formData.append("products", boothForm.products) // 백엔드에서 null로 처리하는 부분 수정 필요
+      formData.append("products", boothForm.products) 
       formData.append("email", email)
 
-      // 실제 파일이 선택되었을 때만 추가
       if (boothFiles.image) {
         formData.append("image", boothFiles.image)
       }
@@ -143,13 +144,29 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
         formData.append("cover_image", boothFiles.cover_image)
       }
 
-      // JSON 헤더 삭제! (FormData는 브라우저가 알아서 헤더 설정함)
+      // 수정 시 기존 이미지가 있고 새 이미지를 안 올렸다면, 기존 URL을 보낼지 여부는
+      // 백엔드 로직에 따라 다르지만, 보통 FormData에 안 담으면 백엔드에서 무시하거나
+      // 기존 값을 유지하도록 처리해야 합니다.
+
       const response = await fetch(url, {
         method,
-        body: formData, 
+        body: formData,
       })
 
-      const data = await response.json()
+      // 응답이 비어있을 경우를 대비해 text로 먼저 받습니다.
+      const text = await response.text()
+      if (!text) {
+          throw new Error("서버로부터 응답이 없습니다.")
+      }
+      
+      // text가 있다면 JSON 파싱 시도
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (e) {
+        console.error("JSON Parse Error:", text)
+        throw new Error(`서버 오류 (${response.status}): ${text.substring(0, 50)}...`)
+      }
 
       if (!response.ok) {
         throw new Error(data.error || `부스 ${isUpdate ? "수정" : "추가"} 실패`)
@@ -157,7 +174,6 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
       setSuccess(`부스가 성공적으로 ${isUpdate ? "수정" : "추가"}되었습니다!`)
       await loadBooth()
-      // 파일 초기화
       setBoothFiles({})
       setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
@@ -167,7 +183,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
       setLoading(false)
     }
   }
-
+  
   // ★ 수정됨: 상품 등록도 이미지 업로드가 있다면 FormData 사용 권장 (현재는 JSON 유지하되 로직만 정리)
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
