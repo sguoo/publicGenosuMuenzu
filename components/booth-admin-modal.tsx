@@ -41,6 +41,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
   const [products, setProducts] = useState<Product[]>([])
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
+  // 텍스트 데이터 및 미리보기용 URL 저장
   const [boothForm, setBoothForm] = useState({
     name: "",
     character: "",
@@ -50,6 +51,9 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     email: email,
   })
 
+  // ★ 추가됨: 실제 파일 객체를 저장하기 위한 State (업로드용)
+  const [boothFiles, setBoothFiles] = useState<{ image?: File; cover_image?: File }>({})
+
   const [productForm, setProductForm] = useState({
     booth_id: "",
     name: "",
@@ -58,16 +62,25 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     image: "",
   })
 
+  // ★ 추가됨: 상품 이미지 파일 객체 저장용
+  const [productFile, setProductFile] = useState<File | null>(null)
+
   const loadBooth = async () => {
     try {
-      const response = await fetch(`/api/booth?email=${encodeURIComponent(email)}`)
-      const data = await response.json()
+      // API 경로가 /api/booths 인지 /api/booth 인지 확인 필요 (파일명에 맞게 수정)
+      const response = await fetch(`/api/booths?email=${encodeURIComponent(email)}`)
+      // 응답이 비어있는 경우 방어 코드
+      const text = await response.text()
+      if (!text) return 
+
+      const data = JSON.parse(text)
+      
       if (response.ok && data.booth) {
         setExistingBooth(data.booth)
         setBoothForm({
           name: data.booth.name,
           character: data.booth.character,
-          products: data.booth.products,
+          products: data.booth.products || "",
           image: data.booth.image,
           cover_image: data.booth.cover_image,
           email: email,
@@ -82,7 +95,13 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
   const loadProducts = async (boothId: string) => {
     try {
       const response = await fetch(`/api/products?booth_id=${boothId}`)
-      const data = await response.json()
+      const text = await response.text()
+      if (!text) {
+          setProducts([])
+          return
+      }
+      const data = JSON.parse(text)
+      
       if (response.ok) {
         setProducts(data.products || [])
       }
@@ -91,6 +110,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     }
   }
 
+  // ★ 수정됨: JSON 대신 FormData를 사용하여 전송
   const handleBoothSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -99,14 +119,34 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
     try {
       const isUpdate = !!existingBooth
-      const url = "/api/booth"
+      // 주의: 백엔드 파일 위치가 app/api/booths/route.ts라면 여기도 /api/booths 여야 합니다.
+      const url = "/api/booths" 
       const method = isUpdate ? "PUT" : "POST"
-      const body = isUpdate ? JSON.stringify({ id: existingBooth.id, ...boothForm }) : JSON.stringify(boothForm)
 
+      // FormData 생성
+      const formData = new FormData()
+      
+      if (isUpdate && existingBooth) {
+        formData.append("id", existingBooth.id)
+      }
+      
+      formData.append("name", boothForm.name)
+      formData.append("character", boothForm.character)
+      formData.append("products", boothForm.products) // 백엔드에서 null로 처리하는 부분 수정 필요
+      formData.append("email", email)
+
+      // 실제 파일이 선택되었을 때만 추가
+      if (boothFiles.image) {
+        formData.append("image", boothFiles.image)
+      }
+      if (boothFiles.cover_image) {
+        formData.append("cover_image", boothFiles.cover_image)
+      }
+
+      // JSON 헤더 삭제! (FormData는 브라우저가 알아서 헤더 설정함)
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body,
+        body: formData, 
       })
 
       const data = await response.json()
@@ -117,14 +157,18 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
       setSuccess(`부스가 성공적으로 ${isUpdate ? "수정" : "추가"}되었습니다!`)
       await loadBooth()
+      // 파일 초기화
+      setBoothFiles({})
       setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
+      console.error(err)
       setError(err instanceof Error ? err.message : "오류가 발생했습니다")
     } finally {
       setLoading(false)
     }
   }
 
+  // ★ 수정됨: 상품 등록도 이미지 업로드가 있다면 FormData 사용 권장 (현재는 JSON 유지하되 로직만 정리)
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -132,8 +176,13 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     setLoading(true)
 
     try {
-      const url = editingProduct ? "/api/products" : "/api/products"
+      const url = "/api/products"
       const method = editingProduct ? "PUT" : "POST"
+      
+      // 상품 이미지 업로드 로직이 백엔드에 따라 다를 수 있음.
+      // 현재 백엔드 코드는 부스만 주셨으므로, 상품은 기존 로직(JSON) 유지
+      // 만약 상품 이미지도 파일 업로드라면 위 부스처럼 FormData로 바꿔야 함.
+      
       const body = editingProduct
         ? JSON.stringify({ id: editingProduct.id, ...productForm })
         : JSON.stringify(productForm)
@@ -217,36 +266,29 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     })
   }
 
-  const handleImageUpload = async (file: File, type: "booth" | "cover" | "product") => {
-    setUploading(true)
-    setError("")
-
-    try {
+  const handleImageUpload = async (file: File) => {
+      // 단순히 미리보기용 URL 생성
       return new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onloadend = () => {
-          resolve(reader.result as string)
-        }
-        reader.onerror = () => {
-          reject(new Error("파일 읽기 실패"))
-        }
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error("파일 읽기 실패"))
         reader.readAsDataURL(file)
       })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "파일 처리 중 오류가 발생했습니다")
-      return null
-    } finally {
-      setUploading(false)
-    }
   }
 
+  // ★ 수정됨: 파일 선택 시 미리보기 URL 생성 + 파일 객체 저장
   const handleBoothImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "cover_image") => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const url = await handleImageUpload(file, type === "image" ? "booth" : "cover")
-    if (url) {
-      setBoothForm({ ...boothForm, [type]: url })
+    try {
+        const url = await handleImageUpload(file)
+        // 1. 미리보기용 URL 업데이트
+        setBoothForm(prev => ({ ...prev, [type]: url }))
+        // 2. 전송용 파일 객체 저장
+        setBoothFiles(prev => ({ ...prev, [type]: file }))
+    } catch(err) {
+        console.error(err)
     }
   }
 
@@ -254,9 +296,12 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
     const file = e.target.files?.[0]
     if (!file) return
 
-    const url = await handleImageUpload(file, "product")
-    if (url) {
-      setProductForm({ ...productForm, image: url })
+    try {
+        const url = await handleImageUpload(file)
+        setProductForm(prev => ({ ...prev, image: url }))
+        // 상품 이미지도 파일 업로드라면 여기서 setProductFile(file) 같은 처리가 필요
+    } catch (err) {
+        console.error(err)
     }
   }
 
@@ -274,8 +319,12 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
   if (!isOpen) return null
 
+  // ... (JSX 리턴 부분은 기존과 동일하므로 생략하거나 그대로 사용하세요)
+  // 기존 코드의 return (...) 부분을 그대로 유지하면 됩니다.
+  
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {/* ... 기존 JSX 내용 그대로 ... */}
       <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex justify-between items-center p-6 border-b border-border">
           <h2 className="text-xl font-bold">부스 관리</h2>
@@ -432,6 +481,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                     onSubmit={handleProductSubmit}
                     className="space-y-4 p-4 border border-border rounded-lg bg-muted/30"
                   >
+                   {/* 상품 폼 내용 (기존과 동일) */}
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-semibold text-lg">{editingProduct ? "상품 수정" : "상품 추가"}</h3>
                       {editingProduct && (
