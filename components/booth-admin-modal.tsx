@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { X, Pencil, Trash2, Plus } from "lucide-react"
+import { X, Pencil, Trash2, Plus, Upload } from "lucide-react"
 
 interface BoothAdminModalProps {
   isOpen: boolean
@@ -33,6 +33,7 @@ interface Booth {
 export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminModalProps) {
   const [activeTab, setActiveTab] = useState<"booth" | "product">("booth")
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
@@ -159,7 +160,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
       setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류가 발생했습니다")
+      setError(err instanceof Error ? err.message : "업로드 중 오류가 발생했습니다")
     } finally {
       setLoading(false)
     }
@@ -188,7 +189,7 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
       setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류가 발생했습니다")
+      setError(err instanceof Error ? err.message : "업로드 중 오류가 발생했습니다")
     } finally {
       setLoading(false)
     }
@@ -214,6 +215,49 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
       price: "",
       image: "",
     })
+  }
+
+  const handleImageUpload = async (file: File, type: "booth" | "cover" | "product") => {
+    setUploading(true)
+    setError("")
+
+    try {
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          resolve(reader.result as string)
+        }
+        reader.onerror = () => {
+          reject(new Error("파일 읽기 실패"))
+        }
+        reader.readAsDataURL(file)
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "파일 처리 중 오류가 발생했습니다")
+      return null
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleBoothImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "cover_image") => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const url = await handleImageUpload(file, type === "image" ? "booth" : "cover")
+    if (url) {
+      setBoothForm({ ...boothForm, [type]: url })
+    }
+  }
+
+  const handleProductImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const url = await handleImageUpload(file, "product")
+    if (url) {
+      setProductForm({ ...productForm, image: url })
+    }
   }
 
   useEffect(() => {
@@ -303,15 +347,24 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">부스 이미지 URL</label>
-                <input
-                  type="url"
-                  value={boothForm.image}
-                  onChange={(e) => setBoothForm({ ...boothForm, image: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                  required
-                />
+                <label className="block text-sm font-medium mb-2">부스 이미지</label>
+                <div className="flex items-center gap-4">
+                  <label className="flex-1 cursor-pointer">
+                    <div className="w-full px-4 py-2 border border-border rounded-lg hover:border-primary transition bg-background flex items-center gap-2">
+                      <Upload size={16} />
+                      <span className="text-sm text-muted-foreground">
+                        {boothForm.image ? "이미지 변경" : "이미지 선택"}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      onChange={(e) => handleBoothImageChange(e, "image")}
+                      className="hidden"
+                      required={!boothForm.image}
+                    />
+                  </label>
+                </div>
                 {boothForm.image && (
                   <img
                     src={boothForm.image || "/placeholder.svg"}
@@ -325,15 +378,24 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">배경 이미지 URL</label>
-                <input
-                  type="url"
-                  value={boothForm.cover_image}
-                  onChange={(e) => setBoothForm({ ...boothForm, cover_image: e.target.value })}
-                  placeholder="https://example.com/cover.jpg"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                  required
-                />
+                <label className="block text-sm font-medium mb-2">배경 이미지</label>
+                <div className="flex items-center gap-4">
+                  <label className="flex-1 cursor-pointer">
+                    <div className="w-full px-4 py-2 border border-border rounded-lg hover:border-primary transition bg-background flex items-center gap-2">
+                      <Upload size={16} />
+                      <span className="text-sm text-muted-foreground">
+                        {boothForm.cover_image ? "배경 이미지 변경" : "배경 이미지 선택"}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      onChange={(e) => handleBoothImageChange(e, "cover_image")}
+                      className="hidden"
+                      required={!boothForm.cover_image}
+                    />
+                  </label>
+                </div>
                 {boothForm.cover_image && (
                   <img
                     src={boothForm.cover_image || "/placeholder.svg"}
@@ -348,10 +410,11 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
               {success && <p className="text-green-500 text-sm">{success}</p>}
+              {uploading && <p className="text-blue-500 text-sm">업로드 중...</p>}
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || uploading}
                 className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium"
               >
                 {loading ? `${existingBooth ? "수정" : "추가"} 중...` : existingBooth ? "부스 수정" : "부스 추가"}
@@ -421,15 +484,24 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">상품 이미지 URL</label>
-                      <input
-                        type="url"
-                        value={productForm.image}
-                        onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                        placeholder="https://example.com/product.jpg"
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-background"
-                        required
-                      />
+                      <label className="block text-sm font-medium mb-2">상품 이미지</label>
+                      <div className="flex items-center gap-4">
+                        <label className="flex-1 cursor-pointer">
+                          <div className="w-full px-4 py-2 border border-border rounded-lg hover:border-primary transition bg-background flex items-center gap-2">
+                            <Upload size={16} />
+                            <span className="text-sm text-muted-foreground">
+                              {productForm.image ? "이미지 변경" : "이미지 선택"}
+                            </span>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg"
+                            onChange={handleProductImageChange}
+                            className="hidden"
+                            required={!productForm.image}
+                          />
+                        </label>
+                      </div>
                       {productForm.image && (
                         <img
                           src={productForm.image || "/placeholder.svg"}
@@ -444,10 +516,11 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
 
                     {error && <p className="text-red-500 text-sm">{error}</p>}
                     {success && <p className="text-green-500 text-sm">{success}</p>}
+                    {uploading && <p className="text-blue-500 text-sm">업로드 중...</p>}
 
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || uploading}
                       className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition font-medium flex items-center justify-center gap-2"
                     >
                       {loading ? (
