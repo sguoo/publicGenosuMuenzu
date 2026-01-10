@@ -34,7 +34,7 @@ export default function Header() {
   const navItems = [
     { name: "홈", href: "/#hero" },        // 다른 페이지에서도 홈의 맨 위로 이동
     { name: "행사 소개", href: "/#about" }, // 다른 페이지에서도 홈의 소개로 이동
-    { name: "참가 부스", href: "/#booth" },
+    { name: "참가 부스", href: "/booths" },
     // { name: "아티스트", href: "/#artists" }, // 삭제됨
     { name: "오시는 길", href: "/#location" },
   ]
