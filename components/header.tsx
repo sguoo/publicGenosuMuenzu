@@ -17,25 +17,51 @@ export default function Header() {
   const [adminEmail, setAdminEmail] = useState("") 
 
   useEffect(() => {
+    // 1. 스크롤 감지
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20)
     }
     window.addEventListener("scroll", handleScroll)
+
+    // 2. ★ 로그인 유지 확인 (새로고침 시 실행)
+    const savedEmail = localStorage.getItem("booth_user_email")
+    if (savedEmail) {
+      setAdminEmail(savedEmail)
+    }
+
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // 로그인 성공 시 실행
   const handleLoginSuccess = (email: string) => {
     setAdminEmail(email)
+    localStorage.setItem("booth_user_email", email) // ★ 로컬 스토리지에 저장
     setIsLoginModalOpen(false)
     setIsAdminModalOpen(true)
   }
 
-  // ★ 수정됨: 경로 앞에 '/'를 붙여서 언제나 메인 페이지로 이동하도록 설정
+  // 로그아웃 (원하신다면 추가)
+  const handleLogout = () => {
+    setAdminEmail("")
+    localStorage.removeItem("booth_user_email")
+    setIsAdminModalOpen(false)
+  }
+
+  // ★ 부스 참가자 버튼 클릭 핸들러
+  const handleBoothButtonClick = () => {
+    if (adminEmail) {
+      // 이미 로그인 되어 있으면 관리자 모달 열기
+      setIsAdminModalOpen(true)
+    } else {
+      // 아니면 로그인 모달 열기
+      setIsLoginModalOpen(true)
+    }
+  }
+
   const navItems = [
-    { name: "홈", href: "/#hero" },        // 다른 페이지에서도 홈의 맨 위로 이동
-    { name: "행사 소개", href: "/#about" }, // 다른 페이지에서도 홈의 소개로 이동
+    { name: "홈", href: "/" },
+    { name: "행사 소개", href: "/#about" },
     { name: "참가 부스", href: "/booths" },
-    // { name: "아티스트", href: "/#artists" }, // 삭제됨
     { name: "오시는 길", href: "/#location" },
   ]
 
@@ -73,11 +99,11 @@ export default function Header() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => setIsLoginModalOpen(true)}
+              onClick={handleBoothButtonClick} // ★ 핸들러 교체
               className="gap-2 rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary"
             >
               <User size={16} />
-              부스 참가자
+              {adminEmail ? "내 부스 관리" : "부스 참가자"} {/* ★ 텍스트 변경 */}
             </Button>
           </div>
 
@@ -112,10 +138,10 @@ export default function Header() {
                 className="w-full mt-2" 
                 onClick={() => {
                   setIsOpen(false)
-                  setIsLoginModalOpen(true)
+                  handleBoothButtonClick() // ★ 핸들러 교체
                 }}
               >
-                부스 참가자 로그인
+                {adminEmail ? "내 부스 관리" : "부스 참가자 로그인"}
               </Button>
             </div>
           </div>
@@ -132,6 +158,7 @@ export default function Header() {
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         email={adminEmail}
+        onLogout={handleLogout} // 로그아웃 기능 전달
       />
     </>
   )

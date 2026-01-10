@@ -9,36 +9,42 @@ interface BoothLoginModalProps {
   onSuccess: (email: string) => void 
 }
 
+// ★ 타입 정의 추가
+interface LoginResponse {
+  booth?: {
+    id: string;
+    // 다른 필드도 있지만 여기선 존재 여부만 확인하므로 생략 가능
+  };
+  error?: string;
+}
+
 export default function BoothLoginModal({ isOpen, onClose, onSuccess }: BoothLoginModalProps) {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("") // 에러 메시지 상태 추가
+  const [error, setError] = useState("") 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
 
     setLoading(true)
-    setError("") // 기존 에러 초기화
+    setError("") 
 
     try {
-      // 1. 서버(DB)에 이메일이 있는지 확인 요청
       const res = await fetch(`/api/booths?email=${encodeURIComponent(email)}`)
       
       if (!res.ok) {
         throw new Error("서버 통신 오류")
       }
 
-      const data = await res.json()
+      // ★ 타입 단언 (unknown -> LoginResponse)
+      const data = (await res.json()) as LoginResponse
 
-      // 2. DB에 해당 이메일을 가진 부스가 있는지 체크
       if (data.booth) {
-        // 성공: 부모 컴포넌트에게 알림
         onSuccess(email)
         setEmail("")
         setError("")
       } else {
-        // 실패: DB에 없음
         setError("등록된 부스 정보가 없습니다. 이메일을 확인해주세요.")
       }
     } catch (err) {
@@ -85,7 +91,7 @@ export default function BoothLoginModal({ isOpen, onClose, onSuccess }: BoothLog
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value)
-                    setError("") // 타이핑하면 에러 메시지 지움
+                    setError("") 
                   }}
                   className={`w-full pl-10 pr-4 py-3 bg-muted/30 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
                     error 
@@ -96,7 +102,6 @@ export default function BoothLoginModal({ isOpen, onClose, onSuccess }: BoothLog
                   autoFocus
                 />
               </div>
-              {/* 에러 메시지 표시 영역 */}
               {error && (
                 <div className="flex items-center gap-2 text-red-500 text-xs mt-1 ml-1 animate-in slide-in-from-left-1">
                   <AlertCircle size={14} />
