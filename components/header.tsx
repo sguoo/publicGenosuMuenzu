@@ -24,19 +24,19 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // 로그인 성공 시 실행할 함수
   const handleLoginSuccess = (email: string) => {
-    setAdminEmail(email)          // 이메일 저장
-    setIsLoginModalOpen(false)    // 로그인 모달 닫기
-    setIsAdminModalOpen(true)     // 관리자 모달 열기
+    setAdminEmail(email)
+    setIsLoginModalOpen(false)
+    setIsAdminModalOpen(true)
   }
 
+  // ★ 수정됨: 경로 앞에 '/'를 붙여서 언제나 메인 페이지로 이동하도록 설정
   const navItems = [
-    { name: "홈", href: "#hero" },
-    { name: "행사 소개", href: "#about" },
-    { name: "참가 부스", href: "#booth" },
-    { name: "아티스트", href: "#artists" },
-    { name: "오시는 길", href: "#location" },
+    { name: "홈", href: "/#hero" },        // 다른 페이지에서도 홈의 맨 위로 이동
+    { name: "행사 소개", href: "/#about" }, // 다른 페이지에서도 홈의 소개로 이동
+    { name: "참가 부스", href: "/#booth" },
+    // { name: "아티스트", href: "/#artists" }, // 삭제됨
+    { name: "오시는 길", href: "/#location" },
   ]
 
   return (
@@ -49,7 +49,6 @@ export default function Header() {
         }`}
       >
         <div className="container mx-auto px-4 flex items-center justify-between">
-          {/* 로고 */}
           <Link 
             href="/" 
             className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent hover:opacity-80 transition-opacity"
@@ -57,7 +56,6 @@ export default function Header() {
             환상몽원도
           </Link>
 
-          {/* 데스크탑 메뉴 */}
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item) => (
               <Link
@@ -70,7 +68,6 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* 우측 버튼 그룹 */}
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
             <Button 
@@ -84,7 +81,6 @@ export default function Header() {
             </Button>
           </div>
 
-          {/* 모바일 메뉴 버튼 */}
           <button
             className="md:hidden p-2 text-foreground"
             onClick={() => setIsOpen(!isOpen)}
@@ -94,7 +90,6 @@ export default function Header() {
           </button>
         </div>
 
-        {/* 모바일 메뉴 드롭다운 */}
         {isOpen && (
           <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg animate-in slide-in-from-top-2">
             <div className="flex flex-col p-4 gap-4">
@@ -127,14 +122,12 @@ export default function Header() {
         )}
       </header>
 
-      {/* 부스 로그인 모달 */}
       <BoothLoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onSuccess={handleLoginSuccess}
       />
 
-      {/* 부스 관리자 모달 (로그인 성공 후 열림) */}
       <BoothAdminModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}

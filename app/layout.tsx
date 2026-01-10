@@ -19,12 +19,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // suppressHydrationWarning: 테마 적용 시 깜빡임/경고 방지 (필수)
     <html lang="ko" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="system"  // ★ 수정: 기본값을 'system'으로 설정
+          enableSystem={true}    // ★ 수정: 시스템 설정 감지 활성화
           disableTransitionOnChange
         >
           <Header />
@@ -33,7 +34,6 @@ export default function RootLayout({
           </main>
           <Footer />
           <Toaster />
-          {/* 에러 원인이었던 <BoothLoginModal /> 태그를 삭제했습니다. */}
         </ThemeProvider>
       </body>
     </html>
