@@ -34,9 +34,12 @@ export default function Booth() {
         const contentType = response.headers.get("content-type")
         if (contentType && contentType.includes("application/json")) {
           const data = await response.json()
-          // 배열인지 확인
           if (Array.isArray(data)) {
-            setBooths(data)
+            const validBooths = data.map((booth) => ({
+              ...booth,
+              boothProducts: Array.isArray(booth.boothProducts) ? booth.boothProducts : [],
+            }))
+            setBooths(validBooths)
           } else {
             console.error("[v0] Invalid data format:", data)
             setBooths([])
@@ -56,8 +59,11 @@ export default function Booth() {
     fetchBooths()
   }, [])
 
-  const getImageUrl = (imageUrl: string | null, width = 120, height = 160) => {
-    return imageUrl || `/placeholder.svg?height=${height}&width=${width}&query=상품이미지`
+  const getImageUrl = (imageUrl: string | null | undefined, query = "이미지") => {
+    if (!imageUrl) {
+      return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(query)}`
+    }
+    return imageUrl
   }
 
   const toggleBooth = (id: number | string) => {
@@ -107,7 +113,7 @@ export default function Booth() {
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-3 mb-1">
                     <img
-                      src={getImageUrl(booth.image, 40, 40) || "/placeholder.svg"}
+                      src={getImageUrl(booth.image, "부스아이콘") || "/placeholder.svg"}
                       alt={booth.name}
                       className="w-10 h-10 rounded object-cover"
                     />
@@ -129,38 +135,45 @@ export default function Booth() {
                 <div className="px-6 py-4 bg-background border-t border-primary/20 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg mb-4 overflow-hidden flex items-center justify-center">
                     <img
-                      src={getImageUrl(booth.coverImage ?? booth.cover_image ?? null, 400, 192) || "/placeholder.svg"}
+                      src={getImageUrl(booth.coverImage || booth.cover_image, "부스커버")}
                       alt={`${booth.name} cover`}
                       className="w-full h-full object-cover"
                     />
                   </div>
 
                   <h4 className="font-semibold text-accent mb-4">🛍️ 부스 상품</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {booth.boothProducts.map((product, idx) => (
-                      <div key={idx} className="bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition">
-                        <div className="w-full h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
-                          <img
-                            src={getImageUrl(product.image) || "/placeholder.svg"}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-
-                        <div className="p-3">
-                          <div className="mb-2">
-                            <span className="inline-block bg-primary/15 text-primary text-xs font-semibold px-3 py-1 rounded">
-                              {product.category}
-                            </span>
+                  {booth.boothProducts.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">등록된 상품이 없습니다.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {booth.boothProducts.map((product, idx) => (
+                        <div
+                          key={product.id || idx}
+                          className="bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition"
+                        >
+                          <div className="w-full h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
+                            <img
+                              src={getImageUrl(product.image, "상품이미지") || "/placeholder.svg"}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
 
-                          <h5 className="font-semibold text-sm text-foreground mb-2 line-clamp-2">{product.name}</h5>
+                          <div className="p-3">
+                            <div className="mb-2">
+                              <span className="inline-block bg-primary/15 text-primary text-xs font-semibold px-3 py-1 rounded">
+                                {product.category}
+                              </span>
+                            </div>
 
-                          <p className="text-primary font-bold text-sm">{product.price}</p>
+                            <h5 className="font-semibold text-sm text-foreground mb-2 line-clamp-2">{product.name}</h5>
+
+                            <p className="text-primary font-bold text-sm">{product.price}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
