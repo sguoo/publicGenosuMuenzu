@@ -15,7 +15,6 @@ export default function Home() {
       </section>
       
       <About />
-      <Booth />
       {/* <Artists />  아티스트 섹션 삭제됨 */}
       <Schedule />
       {/* <Location /> */}
