@@ -58,6 +58,9 @@ export default function Header() {
               <a href="#about" className="text-foreground hover:text-primary transition theme-transition">
                 소개
               </a>
+              <a href="/booths" className="text-foreground hover:text-primary transition theme-transition">
+                부스
+              </a>
               <a href="#artists" className="text-foreground hover:text-primary transition theme-transition">
                 작가
               </a>
@@ -121,6 +124,9 @@ export default function Header() {
             <nav className="md:hidden mt-4 flex flex-col gap-2 pb-4">
               <a href="#about" className="text-foreground hover:text-primary transition py-2 theme-transition">
                 소개
+              </a>
+              <a href="/booths" className="text-foreground hover:text-primary transition py-2 theme-transition">
+                부스
               </a>
               <a href="#artists" className="text-foreground hover:text-primary transition py-2 theme-transition">
                 작가
