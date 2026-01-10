@@ -65,32 +65,43 @@ export default function BoothAdminModal({ isOpen, onClose, email }: BoothAdminMo
   // ★ 추가됨: 상품 이미지 파일 객체 저장용
   const [productFile, setProductFile] = useState<File | null>(null)
 
-  const loadBooth = async () => {
-    try {
-      // API 경로가 /api/booths 인지 /api/booth 인지 확인 필요 (파일명에 맞게 수정)
-      const response = await fetch(`/api/booths?email=${encodeURIComponent(email)}`)
-      // 응답이 비어있는 경우 방어 코드
-      const text = await response.text()
-      if (!text) return 
+const loadBooth = async () => {
+  try {
+    // 1. 주소 수정: /api/booth (X) -> /api/booths (O)
+    // 2. 전체 목록을 가져온 뒤 내 이메일로 필터링합니다.
+    const response = await fetch(`/api/booths`)
+    
+    // 응답이 비었는지 확인
+    const text = await response.text()
+    if (!text) return 
 
-      const data = JSON.parse(text)
-      
-      if (response.ok && data.booth) {
-        setExistingBooth(data.booth)
+    const data = JSON.parse(text)
+    
+    if (response.ok && Array.isArray(data)) {
+      // 내 이메일과 똑같은 부스를 찾습니다.
+      const myBooth = data.find((booth: any) => booth.email === email)
+
+      if (myBooth) {
+        console.log("내 부스 찾음:", myBooth)
+        setExistingBooth(myBooth)
         setBoothForm({
-          name: data.booth.name,
-          character: data.booth.character,
-          products: data.booth.products || "",
-          image: data.booth.image,
-          cover_image: data.booth.cover_image,
-          email: email,
+          name: myBooth.name,
+          character: myBooth.character,
+          products: myBooth.products || "",
+          image: myBooth.image,
+          cover_image: myBooth.cover_image,
+          email: email, // 내 이메일 유지
         })
-        setProductForm({ ...productForm, booth_id: data.booth.id })
+        setProductForm({ ...productForm, booth_id: myBooth.id })
+      } else {
+        console.log("아직 등록된 내 부스가 없습니다.")
+        setExistingBooth(null) // 부스가 없으면 추가 모드로
       }
-    } catch (err) {
-      console.error("[v0] Error loading booth:", err)
     }
+  } catch (err) {
+    console.error("[v0] Error loading booth:", err)
   }
+}
 
   const loadProducts = async (boothId: string) => {
     try {
@@ -183,7 +194,7 @@ const handleBoothSubmit = async (e: React.FormEvent) => {
       setLoading(false)
     }
   }
-  
+
   // ★ 수정됨: 상품 등록도 이미지 업로드가 있다면 FormData 사용 권장 (현재는 JSON 유지하되 로직만 정리)
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
