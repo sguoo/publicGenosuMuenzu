@@ -1,69 +1,76 @@
-"use client"
-import { useState, useEffect } from "react"
-import { Menu, X, User } from "lucide-react"
-import Link from "next/link"
-import { ThemeToggle } from "@/components/theme-provider"
-import BoothLoginModal from "@/components/booth-login-modal"
-import BoothAdminModal from "@/components/booth-admin-modal"
-import { Button } from "@/components/ui/button"
+"use client";
+import { useState, useEffect } from "react";
+import { Menu, X, User } from "lucide-react";
+import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-provider";
+import BoothLoginModal from "@/components/booth-login-modal";
+import BoothAdminModal from "@/components/booth-admin-modal";
+import { Button } from "@/components/ui/button";
 
 export default function Header() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
-  
+  const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
   // 모달 상태 관리
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false)
-  const [adminEmail, setAdminEmail] = useState("") 
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  // 인증 정보 상태
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminAuthCode, setAdminAuthCode] = useState(""); // 인증 코드 상태
 
   useEffect(() => {
-    // 1. 스크롤 감지
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-    window.addEventListener("scroll", handleScroll)
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
 
-    // 2. ★ 로그인 유지 확인 (새로고침 시 실행)
-    const savedEmail = localStorage.getItem("booth_user_email")
-    if (savedEmail) {
-      setAdminEmail(savedEmail)
+    // 로컬 스토리지에서 인증 정보 복구
+    const savedEmail = localStorage.getItem("booth_user_email");
+    const savedCode = localStorage.getItem("booth_user_code");
+
+    if (savedEmail && savedCode) {
+      setAdminEmail(savedEmail);
+      setAdminAuthCode(savedCode);
     }
 
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // 로그인 성공 시 실행
-  const handleLoginSuccess = (email: string) => {
-    setAdminEmail(email)
-    localStorage.setItem("booth_user_email", email) // ★ 로컬 스토리지에 저장
-    setIsLoginModalOpen(false)
-    setIsAdminModalOpen(true)
-  }
+  const handleLoginSuccess = (email: string, code: string) => {
+    setAdminEmail(email);
+    setAdminAuthCode(code);
+    localStorage.setItem("booth_user_email", email);
+    localStorage.setItem("booth_user_code", code);
 
-  // 로그아웃 (원하신다면 추가)
+    setIsLoginModalOpen(false);
+    setIsAdminModalOpen(true);
+  };
+
+  // 로그아웃
   const handleLogout = () => {
-    setAdminEmail("")
-    localStorage.removeItem("booth_user_email")
-    setIsAdminModalOpen(false)
-  }
+    setAdminEmail("");
+    setAdminAuthCode("");
+    localStorage.removeItem("booth_user_email");
+    localStorage.removeItem("booth_user_code");
+    setIsAdminModalOpen(false);
+  };
 
-  // ★ 부스 참가자 버튼 클릭 핸들러
   const handleBoothButtonClick = () => {
-    if (adminEmail) {
-      // 이미 로그인 되어 있으면 관리자 모달 열기
-      setIsAdminModalOpen(true)
+    if (adminEmail && adminAuthCode) {
+      setIsAdminModalOpen(true);
     } else {
-      // 아니면 로그인 모달 열기
-      setIsLoginModalOpen(true)
+      setIsLoginModalOpen(true);
     }
-  }
+  };
 
   const navItems = [
     { name: "홈", href: "/" },
     { name: "행사 소개", href: "/#about" },
     { name: "참가 부스", href: "/booths" },
     { name: "오시는 길", href: "/#location" },
-  ]
+  ];
 
   return (
     <>
@@ -75,8 +82,8 @@ export default function Header() {
         }`}
       >
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent hover:opacity-80 transition-opacity"
           >
             환상몽원도
@@ -96,14 +103,14 @@ export default function Header() {
 
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleBoothButtonClick} // ★ 핸들러 교체
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBoothButtonClick}
               className="gap-2 rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary"
             >
               <User size={16} />
-              {adminEmail ? "내 부스 관리" : "부스 참가자"} {/* ★ 텍스트 변경 */}
+              {adminEmail ? "내 부스 관리" : "부스 참가자"}
             </Button>
           </div>
 
@@ -134,11 +141,11 @@ export default function Header() {
                 <span className="text-sm font-medium">테마 설정</span>
                 <ThemeToggle />
               </div>
-              <Button 
-                className="w-full mt-2" 
+              <Button
+                className="w-full mt-2"
                 onClick={() => {
-                  setIsOpen(false)
-                  handleBoothButtonClick() // ★ 핸들러 교체
+                  setIsOpen(false);
+                  handleBoothButtonClick();
                 }}
               >
                 {adminEmail ? "내 부스 관리" : "부스 참가자 로그인"}
@@ -154,12 +161,14 @@ export default function Header() {
         onSuccess={handleLoginSuccess}
       />
 
+      {/* ★ 여기가 에러가 나던 부분입니다. authCode를 넘겨주도록 수정했습니다. */}
       <BoothAdminModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         email={adminEmail}
-        onLogout={handleLogout} // 로그아웃 기능 전달
+        authCode={adminAuthCode}
+        onLogout={handleLogout}
       />
     </>
-  )
+  );
 }
