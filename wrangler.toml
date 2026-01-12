@@ -12,4 +12,4 @@ database_id = "5a7503ac-e794-4560-9df8-3a1b5a81f298"
 
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "gensou-images"
+bucket_name = "gensou-image"
