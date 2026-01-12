@@ -8,11 +8,10 @@ interface BoothAdminModalProps {
   isOpen: boolean;
   onClose: () => void;
   email: string;
-  authCode: string; // 필수 속성
+  authCode: string;
   onLogout?: () => void;
 }
 
-// --- 타입 정의 ---
 interface Booth {
   id: string;
   name: string;
@@ -87,7 +86,56 @@ export default function BoothAdminModal({
     }
   }, [isOpen, email, authCode]);
 
-  // 1. 내 부스 정보 가져오기
+  // ★ 이미지 압축 함수 (핵심 추가 기능)
+  // 큰 이미지를 받아서 가로 600px 이하의 JPEG로 변환하여 용량을 줄임
+  const compressImage = async (
+    file: File,
+    maxWidth: number = 600
+  ): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = document.createElement("img");
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          // 비율 유지하며 리사이징
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // JPEG 포맷, 품질 0.7로 변환 (용량 대폭 감소)
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const resizedFile = new File([blob], file.name, {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                });
+                resolve(resizedFile);
+              } else {
+                reject(new Error("이미지 압축 실패"));
+              }
+            },
+            "image/jpeg",
+            0.7
+          );
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const fetchMyBooth = async () => {
     setFetchLoading(true);
     try {
@@ -118,7 +166,6 @@ export default function BoothAdminModal({
     }
   };
 
-  // 2. 상품 목록 가져오기
   const fetchProducts = async (boothId: string) => {
     try {
       const res = await fetch(`/api/products?booth_id=${boothId}`);
@@ -129,7 +176,6 @@ export default function BoothAdminModal({
     }
   };
 
-  // 3. 부스 정보 저장
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -142,6 +188,8 @@ export default function BoothAdminModal({
       formData.append("products", description);
 
       if (id) formData.append("id", id);
+
+      // 이미지가 변경되었다면 전송
       if (imageFile) formData.append("image", imageFile);
       if (coverFile) formData.append("cover_image", coverFile);
 
@@ -151,7 +199,6 @@ export default function BoothAdminModal({
       });
 
       if (!res.ok) {
-        // ★ 여기서 에러가 났었습니다. 타입을 명시해서 해결합니다.
         const errData = (await res.json()) as { error?: string };
         throw new Error(errData.error || "저장 실패");
       }
@@ -169,7 +216,6 @@ export default function BoothAdminModal({
     }
   };
 
-  // 4. 상품 추가
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return alert("먼저 '기본 정보' 탭에서 부스 정보를 저장해주세요.");
@@ -198,7 +244,6 @@ export default function BoothAdminModal({
     }
   };
 
-  // 5. 상품 삭제
   const handleDeleteProduct = async (prodId: string) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
     try {
@@ -209,26 +254,42 @@ export default function BoothAdminModal({
     }
   };
 
-  const handleImageChange = (
+  // ★ 이미지 변경 핸들러 수정 (압축 로직 적용)
+  const handleImageChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "main" | "cover" | "product"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (type === "main") {
-        setImageFile(file);
-        setImagePreview(reader.result as string);
-      } else if (type === "cover") {
-        setCoverFile(file);
-        setCoverPreview(reader.result as string);
+
+    try {
+      // 압축 진행 (메인/상품 이미지는 500px, 커버는 800px로 제한)
+      let compressedFile: File;
+
+      if (type === "cover") {
+        compressedFile = await compressImage(file, 800);
       } else {
-        setNewProdImage(file);
-        setNewProdPreview(reader.result as string);
+        compressedFile = await compressImage(file, 500);
       }
-    };
-    reader.readAsDataURL(file);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (type === "main") {
+          setImageFile(compressedFile);
+          setImagePreview(reader.result as string);
+        } else if (type === "cover") {
+          setCoverFile(compressedFile);
+          setCoverPreview(reader.result as string);
+        } else {
+          setNewProdImage(compressedFile);
+          setNewProdPreview(reader.result as string);
+        }
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (error) {
+      console.error("이미지 처리 중 오류:", error);
+      alert("이미지 처리 중 오류가 발생했습니다.");
+    }
   };
 
   if (!isOpen) return null;
@@ -304,6 +365,7 @@ export default function BoothAdminModal({
                     ) : (
                       <Upload className="text-muted-foreground" />
                     )}
+                    {/* accept 속성으로 이미지 파일만 선택 가능하게 함 */}
                     <input
                       ref={imageInputRef}
                       type="file"
