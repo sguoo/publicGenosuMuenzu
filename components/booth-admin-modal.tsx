@@ -114,7 +114,7 @@ export default function BoothAdminModal({
           const ctx = canvas.getContext("2d");
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // JPEG 포맷, 품질 0.7로 변환 (용량 대폭 감소)
+          // JPEG 포맷, 품질 9.7로 변환 (용량 대폭 감소)
           canvas.toBlob(
             (blob) => {
               if (blob) {
@@ -128,7 +128,7 @@ export default function BoothAdminModal({
               }
             },
             "image/jpeg",
-            0.7
+            0.9
           );
         };
       };
@@ -269,7 +269,7 @@ export default function BoothAdminModal({
       if (type === "cover") {
         compressedFile = await compressImage(file, 800);
       } else {
-        compressedFile = await compressImage(file, 500);
+        compressedFile = await compressImage(file, 800);
       }
 
       const reader = new FileReader();
