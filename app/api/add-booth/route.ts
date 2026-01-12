@@ -43,8 +43,8 @@ export async function POST(request: Request) {
     // ★ R2 업로드 헬퍼 함수
     // ★ R2 업로드 헬퍼 함수 (수정됨: 용량 제한 추가)
     const uploadToR2 = async (file: File, type: "main" | "cover") => {
-      // 1. 용량 제한 (예: 5MB)
-      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+      // 1. 용량 제한 (예: 80MB)
+      const MAX_SIZE = 80 * 1024 * 1024; // 5MB
 
       if (file.size > MAX_SIZE) {
         throw new Error(
