@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const { env } = getRequestContext();
 
   // ★ 중요: 1단계에서 복사한 R2 공개 주소를 여기에 넣으세요 (마지막 슬래시 제외)
-  const R2_PUBLIC_URL = "https://pub-2a606439d99c45c8a229c096058273ab.r2.dev";
+  const R2_PUBLIC_URL = "https://images.gensoumuenzu.com";
 
   try {
     const formData = await request.formData();
@@ -41,17 +41,27 @@ export async function POST(request: Request) {
     }
 
     // ★ R2 업로드 헬퍼 함수
+    // ★ R2 업로드 헬퍼 함수 (수정됨: 용량 제한 추가)
     const uploadToR2 = async (file: File, type: "main" | "cover") => {
-      // 파일명 중복 방지를 위해 시간+랜덤문자 조합
+      // 1. 용량 제한 (예: 5MB)
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+      if (file.size > MAX_SIZE) {
+        throw new Error(
+          `파일 용량이 너무 큽니다. (제한: 5MB, 현재: ${(file.size / 1024 / 1024).toFixed(2)}MB)`
+        );
+      }
+
+      // 2. 파일명 생성
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(7);
+      // 파일 타입에서 확장자 추출 (없으면 jpg)
       const extension = file.type.split("/")[1] || "jpg";
       const filename = `${type}_${timestamp}_${random}.${extension}`;
 
-      // R2에 파일 업로드 (put)
+      // 3. R2 업로드
       await env.BUCKET.put(filename, file);
 
-      // 업로드된 주소 반환
       return `${R2_PUBLIC_URL}/${filename}`;
     };
 
