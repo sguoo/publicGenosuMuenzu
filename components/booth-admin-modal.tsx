@@ -255,41 +255,29 @@ export default function BoothAdminModal({
   };
 
   // ★ 이미지 변경 핸들러 수정 (압축 로직 적용)
-  const handleImageChange = async (
+  // handleImageChange 수정 (단순화)
+  const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "main" | "cover" | "product"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      // 압축 진행 (메인/상품 이미지는 500px, 커버는 800px로 제한)
-      let compressedFile: File;
-
-      if (type === "cover") {
-        compressedFile = await compressImage(file, 800);
+    // 미리보기 생성
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (type === "main") {
+        setImageFile(file);
+        setImagePreview(reader.result as string);
+      } else if (type === "cover") {
+        setCoverFile(file);
+        setCoverPreview(reader.result as string);
       } else {
-        compressedFile = await compressImage(file, 800);
+        setNewProdImage(file);
+        setNewProdPreview(reader.result as string);
       }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === "main") {
-          setImageFile(compressedFile);
-          setImagePreview(reader.result as string);
-        } else if (type === "cover") {
-          setCoverFile(compressedFile);
-          setCoverPreview(reader.result as string);
-        } else {
-          setNewProdImage(compressedFile);
-          setNewProdPreview(reader.result as string);
-        }
-      };
-      reader.readAsDataURL(compressedFile);
-    } catch (error) {
-      console.error("이미지 처리 중 오류:", error);
-      alert("이미지 처리 중 오류가 발생했습니다.");
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   if (!isOpen) return null;

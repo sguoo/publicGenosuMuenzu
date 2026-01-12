@@ -9,3 +9,7 @@ pages_build_output_dir = ".vercel/output/static"
 binding = "DB"
 database_name = "gensou-db"
 database_id = "5a7503ac-e794-4560-9df8-3a1b5a81f298"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "gensou-images"

@@ -5,15 +5,18 @@ export const runtime = "edge";
 export async function POST(request: Request) {
   const { env } = getRequestContext();
 
+  // ★ 중요: 1단계에서 복사한 R2 공개 주소를 여기에 넣으세요 (마지막 슬래시 제외)
+  const R2_PUBLIC_URL = "https://pub-2a606439d99c45c8a229c096058273ab.r2.dev";
+
   try {
     const formData = await request.formData();
 
     // 폼 데이터 가져오기
     const email = formData.get("email") as string;
-    const authCode = formData.get("auth_code") as string; // ★ 인증 코드 확인
+    const authCode = formData.get("auth_code") as string;
     const name = formData.get("name") as string;
     const character = formData.get("character") as string;
-    const products = formData.get("products") as string; // 부스 설명
+    const products = formData.get("products") as string;
 
     const imageFile = formData.get("image") as File | null;
     const coverFile = formData.get("cover_image") as File | null;
@@ -25,47 +28,56 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. 보안 검사: 이메일과 인증 코드가 일치하는 부스가 있는지 확인
+    // 1. 인증 확인
     const checkStmt = env.DB.prepare(
       "SELECT * FROM booths WHERE email = ? AND auth_code = ?"
     ).bind(email, authCode);
     const booth = await checkStmt.first();
 
     if (!booth) {
-      return new Response(
-        JSON.stringify({ error: "인증에 실패했습니다. 코드를 확인해주세요." }),
-        { status: 401 }
-      );
+      return new Response(JSON.stringify({ error: "인증 실패" }), {
+        status: 401,
+      });
     }
 
-    // 2. 이미지 처리 (Base64 변환)
-    let imageBase64 = undefined;
-    let coverBase64 = undefined;
+    // ★ R2 업로드 헬퍼 함수
+    const uploadToR2 = async (file: File, type: "main" | "cover") => {
+      // 파일명 중복 방지를 위해 시간+랜덤문자 조합
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(7);
+      const extension = file.type.split("/")[1] || "jpg";
+      const filename = `${type}_${timestamp}_${random}.${extension}`;
+
+      // R2에 파일 업로드 (put)
+      await env.BUCKET.put(filename, file);
+
+      // 업로드된 주소 반환
+      return `${R2_PUBLIC_URL}/${filename}`;
+    };
+
+    // 2. 이미지 처리 (파일이 있으면 R2로 보내고 URL 받기)
+    let imageUrl = undefined;
+    let coverUrl = undefined;
 
     if (imageFile && imageFile.size > 0) {
-      const arrayBuffer = await imageFile.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      imageBase64 = `data:${imageFile.type};base64,${base64}`;
+      imageUrl = await uploadToR2(imageFile, "main");
     }
 
     if (coverFile && coverFile.size > 0) {
-      const arrayBuffer = await coverFile.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      coverBase64 = `data:${coverFile.type};base64,${base64}`;
+      coverUrl = await uploadToR2(coverFile, "cover");
     }
 
-    // 3. DB 업데이트 실행
-    // 인증 코드까지 조건절에 넣어서 확실하게 본인 것만 수정
+    // 3. DB 업데이트 (Base64 대신 짧은 URL이 저장됨)
     let query = "UPDATE booths SET name = ?, character = ?, products = ?";
     const params: any[] = [name, character, products];
 
-    if (imageBase64) {
+    if (imageUrl) {
       query += ", image = ?";
-      params.push(imageBase64);
+      params.push(imageUrl);
     }
-    if (coverBase64) {
+    if (coverUrl) {
       query += ", cover_image = ?";
-      params.push(coverBase64);
+      params.push(coverUrl);
     }
 
     query += " WHERE email = ? AND auth_code = ?";
@@ -76,7 +88,7 @@ export async function POST(request: Request) {
       .bind(...params)
       .run();
 
-    // 4. 업데이트된 최신 정보 반환
+    // 4. 결과 반환
     const updatedBooth = await env.DB.prepare(
       "SELECT * FROM booths WHERE email = ?"
     )
@@ -86,10 +98,12 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ success: true, data: updatedBooth }), {
       headers: { "Content-Type": "application/json" },
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("R2 Upload Error:", error);
     return new Response(
-      JSON.stringify({ error: "서버 내부 오류가 발생했습니다." }),
+      JSON.stringify({
+        error: `서버 오류: ${error.message}`,
+      }),
       { status: 500 }
     );
   }
