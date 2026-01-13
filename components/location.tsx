@@ -7,9 +7,9 @@ export default function Location() {
   const mapContainer = useRef<HTMLDivElement>(null);
 
   // ★ 행사 장소 좌표 (예시: 서울시청) -> 실제 좌표로 변경하세요!
-  const LAT = 37.566826;
+  const LAT = 36.322377;
   const LNG = 126.9786567;
-  const PLACE_NAME = "환상몽원도 행사장"; // 장소 이름
+  const PLACE_NAME = "대전예술가의집"; // 장소 이름
 
   useEffect(() => {
     // 스크립트가 로드되었는지 확인
