@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,8 +25,8 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"  // ★ 수정: 기본값을 'system'으로 설정
-          enableSystem={true}    // ★ 수정: 시스템 설정 감지 활성화
+          defaultTheme="system" // ★ 수정: 기본값을 'system'으로 설정
+          enableSystem={true} // ★ 수정: 시스템 설정 감지 활성화
           disableTransitionOnChange
         >
           <Header />
@@ -35,6 +36,12 @@ export default function RootLayout({
           <Footer />
           <Toaster />
         </ThemeProvider>
+        <Script
+          src={
+            "//dapi.kakao.com/v2/maps/sdk.js?appkey=65268e8c91eb7f0d158f4f7a60b0b070&autoload=false"
+          }
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
