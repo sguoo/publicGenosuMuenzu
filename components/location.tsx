@@ -129,20 +129,6 @@ export default function Location() {
               </p>
             </div>
           </div>
-          <div className="space-y-1">
-            <h4 className="font-bold text-foreground text-base">주차 안내</h4>
-            <div className="bg-muted/50 p-3 rounded-lg text-muted-foreground space-y-2">
-              <p>
-                🅿️ <strong>행사장 내부 주차장</strong>
-              </p>
-              <ul className="list-disc list-inside pl-1 text-xs space-y-1">
-                <li>이용 요금: 무료 / 유료 (확인 필요)</li>
-                <li>
-                  공간이 협소할 수 있으니 가급적 대중교통 이용을 권장합니다.
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
       ),
     },
