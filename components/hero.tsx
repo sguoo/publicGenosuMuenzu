@@ -25,12 +25,9 @@ export default function Hero() {
         </h1>
 
         <p className="text-lg md:text-xl text-muted-foreground mb-8 leading-relaxed">
-          환상의 동방 세계로 여러분을 초대합니다.
+          오는 <span className="text-primary font-semibold">2월 21일</span>,
+          대전에서 비공식 대전 온리전 환상몽원도 개최!
           <br />
-          <span className="text-primary font-semibold">
-            신비로운 창작의 향연
-          </span>
-          이 펼쳐질 이 특별한 시간
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">

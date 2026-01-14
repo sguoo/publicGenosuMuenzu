@@ -9,7 +9,9 @@ export default function About() {
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            연례 온리전입니다
+            동방프로젝트 비공식 온리전으로서
+            <br /> 온리전 중 처음으로 대전에서 열리는 종합 온리전입니다.
+            <br /> 매년 열릴 예정이니 많은 관심 부탁드립니다.
           </p>
         </div>
 

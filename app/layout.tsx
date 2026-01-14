@@ -38,7 +38,7 @@ export default function RootLayout({
         </ThemeProvider>
         <Script
           src={
-            "//dapi.kakao.com/v2/maps/sdk.js?appkey=65268e8c91eb7f0d158f4f7a60b0b070&autoload=false"
+            "//dapi.kakao.com/v2/maps/sdk.js?appkey=18e1a013dd3a9c111a5aba08484d4f0d&autoload=false"
           }
           strategy="afterInteractive"
         />
