@@ -36,7 +36,7 @@ export default function Hero() {
           <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-lg font-semibold transition transform hover:scale-105" onClick={() => {
             window.location.href = "/booths";
           }}>
-            참가 부스 보러
+            참가 부스 보기
           </button>
           <button className="border-2 border-primary text-primary hover:bg-primary/10 px-8 py-3 rounded-lg font-semibold transition" onClick={() =>{
             window.location.href = "#about";
