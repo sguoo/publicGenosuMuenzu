@@ -149,6 +149,7 @@ export default function BoothsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="text-lg font-bold truncate">{booth.name}</h3>
+{/* --- 수정된 캐릭터 배지 부분 시작 --- */}
                         {booth.character && (
                           <div className="relative group shrink-0">
                             {/* 1. 평소에 보이는 배지 (공간 부족시 ... 처리) */}
@@ -164,6 +165,7 @@ export default function BoothsPage() {
                             </div>
                           </div>
                         )}
+                        {/* --- 수정된 캐릭터 배지 부분 끝 --- */}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
                         {booth.products || "부스 소개가 없습니다."}
