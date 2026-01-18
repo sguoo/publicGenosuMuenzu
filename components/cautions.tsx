@@ -48,7 +48,7 @@ export default function Cautions() {
             </span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            환상몽환도를 즐기기 위한 안내
+            환상몽원도를 즐기기 위한 안내
           </p>
         </div>
 
