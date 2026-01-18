@@ -25,7 +25,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="#"
+                  href="#about"
                   className="text-muted-foreground hover:text-primary transition"
                 >
                   소개
@@ -33,10 +33,10 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/booths"
                   className="text-muted-foreground hover:text-primary transition"
                 >
-                  작가
+                  부스
                 </a>
               </li>
               <li>
@@ -55,13 +55,13 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="#"
+                  href="https://x.com/gensoumuenzu"
                   className="text-muted-foreground hover:text-primary transition"
                 >
                   트위터
                 </a>
               </li>
-              <li>
+              {/*<li>
                 <a
                   href="#"
                   className="text-muted-foreground hover:text-primary transition"
@@ -76,7 +76,7 @@ export default function Footer() {
                 >
                   블로그
                 </a>
-              </li>
+              </li>*/}
             </ul>
           </div>
 
@@ -95,11 +95,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border pt-8">
+        {/*<div className="border-t border-border pt-8">
           <p className="text-center text-muted-foreground text-sm">
-            © 2025 幻想夢園圖. All rights reserved.
+            © 2025 환상특급. All rights reserved.
           </p>
-        </div>
+        </div>*/}
       </div>
     </footer>
   );

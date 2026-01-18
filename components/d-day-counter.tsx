@@ -7,7 +7,7 @@ export default function DDayCounter() {
 
   useEffect(() => {
     // ★ 여기에 행사 날짜를 적어주세요! (YYYY-MM-DD 형식)
-    const EVENT_DATE = new Date("2025-05-25") // 예: 2025년 5월 25일
+    const EVENT_DATE = new Date("2026-02-21") // 예: 2025년 5월 25일
     
     const today = new Date()
 
