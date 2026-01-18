@@ -41,7 +41,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="#schedule"
                   className="text-muted-foreground hover:text-primary transition"
                 >
                   일정
@@ -88,9 +88,9 @@ export default function Footer() {
                   📧 muenzu@gensoumuenzu.com
                 </p>
               </li>
-              <li>
+              {/*<li>
                 <p className="text-muted-foreground">☎️ 02-XXXX-XXXX</p>
-              </li>
+              </li>*/}
             </ul>
           </div>
         </div>
