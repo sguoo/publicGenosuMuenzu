@@ -6,7 +6,7 @@ export default function Cautions() {
       icon: "⏰",
       title: "시간 엄수",
       description:
-        "온리전 운영 시간을 반드시 확인하고 시간 내에 방문해 주세요.",
+        "부스 운영 시간은 11:00부터 18:00까지입니다. 시간 내에 방문해 주세요.",
     },
     {
       icon: "📸",
@@ -24,15 +24,14 @@ export default function Cautions() {
       description: "부스 물품의 무단 복제 및 재판매는 절대 금지됩니다.",
     },
     {
-      icon: "📝",
-      title: "저작권",
-      description: "모든 창작물의 저작권은 각 창작자에게 있습니다.",
-    },
-    {
       icon: "🤝",
       title: "존중하는 문화",
       description:
         "모든 참가자와 방문객이 즐거운 환경을 만드는데 함께해 주세요.",
+    },{
+      icon: "📝",
+      title: "규정 준수",
+      description: "꼭 행사의 규정을 준수해 주시기 바랍니다. 규정 위반 시 퇴장 조치될 수 있습니다",
     },
   ];
 

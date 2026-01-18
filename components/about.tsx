@@ -11,28 +11,32 @@ export default function About() {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             동방프로젝트 비공식 온리전으로서
             <br /> 온리전 중 처음으로 대전에서 열리는 종합 온리전입니다.
-            <br /> 매년 열릴 예정이니 많은 관심 부탁드립니다.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
-              title: "창작의 자유",
+              title: "부스 참여 활동",
               description:
-                "동방 세계관 내에서 여러분의 상상력을 펼칠 수 있습니다",
+                [
+                "자신만의 굿즈를 만들어서 ",
+                <br / >,
+                "부스를 운영 할 수 있는 기회"],
               icon: "🎨",
             },
             {
               title: "커뮤니티",
-              description: "전국의 동방 팬들과 만나 교류할 수 있는 장",
+              description: "전국의 동방 팬들과 만날 수 있는 장",
               icon: "👥",
             },
             {
-              title: "경험 공유",
+              title: "특별한 이벤트",
               description:
-                "창작자들의 다양한 작품을 한자리에서 감상할 수 있습니다",
-              icon: "✨",
+                ["환상몽원도만의 특별한 이벤트를",
+                <br / >,
+                "즐길 수 있습니다"],
+                icon: "✨",
             },
           ].map((item, idx) => (
             <div

@@ -22,7 +22,7 @@ export default function Schedule() {
               <h3 className="text-2xl font-bold text-primary">개최일</h3>
             </div>
             <p className="text-lg text-foreground mb-2">2026년 2월 21일</p>
-            <p className="text-muted-foreground">11:00 ~ 17:00</p>
+            <p className="text-muted-foreground">11:00 ~ 18:00</p>
           </div>
 
           <div className="bg-background border-2 border-accent rounded-xl p-8">
@@ -35,7 +35,7 @@ export default function Schedule() {
           </div>
         </div>
 
-        <div className="mt-8 bg-card border border-border rounded-xl p-8">
+        {/*<div className="mt-8 bg-card border border-border rounded-xl p-8">
           <h3 className="text-xl font-bold mb-6 text-primary">타임테이블</h3>
           <div className="space-y-4">
             {[{ time: "10:30", event: "입장 시작" }].map((item, idx) => (
@@ -50,7 +50,7 @@ export default function Schedule() {
               </div>
             ))}
           </div>
-        </div>
+        </div>*/}
       </div>
     </section>
   );

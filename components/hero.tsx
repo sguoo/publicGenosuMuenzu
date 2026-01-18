@@ -1,6 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import BoothCountText from "./booth-count-text";
+import DDayCounter from "./d-day-counter";
 
 export default function Hero() {
   return (
@@ -26,22 +28,26 @@ export default function Hero() {
 
         <p className="text-lg md:text-xl text-muted-foreground mb-8 leading-relaxed">
           오는 <span className="text-primary font-semibold">2월 21일</span>,
-          대전에서 비공식 대전 온리전 환상몽원도 개최!
+          대전에서 비공식 동방 온리전 환상몽원도 개최!
           <br />
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-lg font-semibold transition transform hover:scale-105">
-            참가 작가 신청
+          <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-lg font-semibold transition transform hover:scale-105" onClick={() => {
+            window.location.href = "/booths";
+          }}>
+            참가 부스 보러
           </button>
-          <button className="border-2 border-primary text-primary hover:bg-primary/10 px-8 py-3 rounded-lg font-semibold transition">
+          <button className="border-2 border-primary text-primary hover:bg-primary/10 px-8 py-3 rounded-lg font-semibold transition" onClick={() =>{
+            window.location.href = "#about";
+          }}>
             더 알아보기
           </button>
         </div>
 
         <div className="flex gap-8 justify-center text-sm">
           <div className="flex flex-col items-center">
-            <span className="text-2xl font-bold text-primary">0</span>
+            <span className="text-2xl font-bold text-primary"><BoothCountText /></span>
             <span className="text-muted-foreground">참가 부스</span>
           </div>
           {/*<div className="flex flex-col items-center">
@@ -49,7 +55,7 @@ export default function Hero() {
             <span className="text-muted-foreground">창작물</span>
           </div>*/}
           <div className="flex flex-col items-center">
-            <span className="text-2xl font-bold text-primary">0</span>
+            <span className="text-2xl font-bold text-primary"><DDayCounter /></span>
             <span className="text-muted-foreground">개최까지</span>
           </div>
         </div>
