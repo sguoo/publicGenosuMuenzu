@@ -150,9 +150,19 @@ export default function BoothsPage() {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="text-lg font-bold truncate">{booth.name}</h3>
                         {booth.character && (
-                          <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full truncate max-w-[150px]">
-                            {booth.character}
-                          </span>
+                          <div className="relative group shrink-0">
+                            {/* 1. 평소에 보이는 배지 (공간 부족시 ... 처리) */}
+                            <span className="block px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full truncate max-w-[150px] cursor-help">
+                              {booth.character}
+                            </span>
+
+                            {/* 2. 마우스 호버 시 나타나는 툴팁 (전체 텍스트) */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-max max-w-[200px] bg-gray-900 text-white text-xs rounded px-2 py-1 z-50 shadow-xl whitespace-normal break-words text-center">
+                              {booth.character}
+                              {/* 말풍선 꼬리 */}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
